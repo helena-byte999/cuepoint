@@ -1,0 +1,498 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>Cuepoint</title>
+<link rel="preload" href="fonts/anton-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/dmsans-latin.woff2" as="font" type="font/woff2" crossorigin>
+<style>
+  /* Self-hosted: a booth has no wifi, and a fallback to Impact is not
+     this typeface. Both families are SIL OFL 1.1 -- the licences ship
+     beside the files in static/fonts/. DM Sans is variable, so one file
+     per subset covers every weight used here. */
+  @font-face { font-family:'Anton'; font-style:normal;
+    font-weight:400; font-display:swap;
+    src:url(fonts/anton-latin.woff2) format('woff2');
+    unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,
+      U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,
+      U+2212,U+2215,U+FEFF,U+FFFD; }
+  @font-face { font-family:'Anton'; font-style:normal;
+    font-weight:400; font-display:swap;
+    src:url(fonts/anton-latin-ext.woff2) format('woff2');
+    unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,
+      U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,
+      U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF; }
+  @font-face { font-family:'DM Sans'; font-style:normal;
+    font-weight:400 700; font-display:swap;
+    src:url(fonts/dmsans-latin.woff2) format('woff2');
+    unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,
+      U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,
+      U+2212,U+2215,U+FEFF,U+FFFD; }
+  @font-face { font-family:'DM Sans'; font-style:normal;
+    font-weight:400 700; font-display:swap;
+    src:url(fonts/dmsans-latin-ext.woff2) format('woff2');
+    unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,
+      U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,
+      U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF; }
+
+  :root {
+    /* Ground and chrome. Near-black with a halftone dot field, the way the
+       reference deck frames everything against a printed-looking texture. */
+    --bg:#0d0d0f; --card:#08080a; --panel:#121215; --panel2:#1a1a1e;
+    --line:#232329; --line2:#33333b;
+    --ink:#ffffff; --dim:#8b8b93; --dim2:#5f5f68;
+
+    /* Two brand colours carry the whole interface: lime is every affordance
+       (live, selected, open, in-range), lavender is every counterpart. */
+    --lime:#c9f65e; --lav:#ddb8fa; --violet:#7c5cff;
+    --amber:#ffa23d; --red:#ff3b5c;
+
+    /* Phrase roles keep their own vivid set so they never read as UI state. */
+    --intro:#6c8cff; --build:#ffa23d; --peak:#ff3b5c; --breakdown:#b98bff;
+    --verse:#3ed8c6; --bridge:#ff5fc8; --outro:#6b7280;
+
+    --display:'Anton','Arial Narrow',Haettenschweiler,Impact,sans-serif;
+    --ui:'DM Sans',ui-sans-serif,-apple-system,'SF Pro Text',Inter,sans-serif;
+  }
+  * { box-sizing:border-box; }
+  body {
+    margin:0; background:var(--bg); color:var(--ink);
+    font:14px/1.5 var(--ui); -webkit-font-smoothing:antialiased;
+    background-image:radial-gradient(rgba(255,255,255,.055) 1px, transparent 1px);
+    background-size:13px 13px;
+  }
+  ::-webkit-scrollbar { width:10px; height:10px; }
+  ::-webkit-scrollbar-track { background:transparent; }
+  ::-webkit-scrollbar-thumb { background:#26262c; border-radius:6px; }
+  ::-webkit-scrollbar-thumb:hover { background:#3a3a44; }
+
+  /* ---- header ---------------------------------------------------------- */
+  header { display:flex; align-items:center; gap:14px; padding:15px 20px 13px; }
+  .logo { display:flex; align-items:center; gap:11px; }
+  .brandmark { width:33px; height:33px; border-radius:11px; background:var(--lime);
+    display:grid; place-items:center; flex:0 0 auto;
+    box-shadow:0 0 30px rgba(201,246,94,.32); }
+  .wordmark { font-family:var(--display); font-size:24px; line-height:1;
+    letter-spacing:.004em; }
+  .hpills { margin-left:auto; display:flex; gap:8px; align-items:center; }
+  .pill { display:inline-flex; align-items:center; gap:7px; padding:7px 14px;
+    border-radius:999px; background:var(--panel2); border:1px solid var(--line);
+    color:var(--dim); font-size:11.5px; font-weight:500; white-space:nowrap; }
+  .pill.lime { background:var(--lime); border-color:var(--lime); color:#000;
+    font-weight:700; letter-spacing:.14em; text-transform:uppercase;
+    font-size:10.5px; }
+  [hidden] { display:none !important; }
+
+  /* ---- shell ----------------------------------------------------------- */
+  main { display:grid; grid-template-columns:344px 1fr; gap:12px;
+    padding:0 14px 14px; height:calc(100vh - 61px); }
+  #list, #main { background:var(--card); border:1px solid var(--line);
+    border-radius:22px; }
+  #list { display:flex; flex-direction:column; overflow:hidden; }
+  #main { overflow-y:auto; padding:22px 24px 64px; }
+
+  .searchwrap { padding:15px 14px 10px; }
+  #search { width:100%; padding:11px 17px; border-radius:999px;
+    border:1px solid var(--line); background:var(--panel); color:var(--ink);
+    font:500 13px var(--ui); outline:none; transition:border-color .15s; }
+  #search:focus { border-color:var(--lime); }
+  #search::placeholder { color:var(--dim2); }
+
+  /* VirtualDJ's browser filter, in the deck's chip language: a hard
+     include/exclude on top of the soft ranking the scorer already does. */
+  .filters { margin-top:10px; display:flex; flex-direction:column; gap:7px; }
+  .frow { display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
+  .frow.scroll { flex-wrap:nowrap; overflow-x:auto; padding-bottom:2px;
+    scrollbar-width:none; }
+  .frow.scroll::-webkit-scrollbar { display:none; }
+  .chip { border:1px solid var(--line); background:var(--panel); color:var(--dim);
+    border-radius:999px; padding:6px 12px; font:600 11px var(--ui);
+    cursor:pointer; white-space:nowrap;
+    transition:background .12s, color .12s, border-color .12s; }
+  .chip:hover:not(:disabled) { border-color:var(--line2); color:var(--ink); }
+  .chip.on { background:var(--lime); border-color:var(--lime); color:#000; }
+  .chip.sm { padding:5px 10px; font-size:10.5px; }
+  .chip:disabled { opacity:.35; cursor:not-allowed; }
+  .flabel { font-size:9.5px; font-weight:700; letter-spacing:.14em;
+    text-transform:uppercase; color:var(--dim2); margin-right:2px; }
+  .fcount { margin-left:auto; font-size:10.5px; color:var(--dim2);
+    font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .fhint { padding:10px 14px; font-size:11.5px; color:var(--dim2); }
+
+  #rows { overflow-y:auto; padding:4px 10px 14px; }
+  .row { padding:10px 13px; border-radius:14px; cursor:pointer; margin-bottom:4px;
+    transition:background .12s; }
+  .row:hover { background:var(--panel); }
+  .row.on { background:var(--lime); color:#000; }
+  .row .t { font-size:13px; font-weight:600; white-space:nowrap;
+    overflow:hidden; text-overflow:ellipsis; }
+  .row .s { font-size:11px; color:var(--dim); margin-top:3px;
+    font-variant-numeric:tabular-nums; letter-spacing:.01em; }
+  .row.on .s { color:rgba(0,0,0,.62); }
+
+  /* ---- empty states: poster type, the way the deck sets a full-bleed line */
+  .empty { text-align:center; margin-top:18vh; color:var(--dim2); }
+  .empty b { display:block; font-family:var(--display); text-transform:uppercase;
+    font-size:clamp(30px,5vw,54px); line-height:1.04; letter-spacing:.012em;
+    color:#1f1f24; }
+  .empty span { display:block; margin-top:12px; font-size:13px; }
+
+  /* ---- now playing ----------------------------------------------------- */
+  .now { border:1px solid var(--line); border-radius:20px; padding:20px 22px;
+    margin-bottom:20px;
+    background:radial-gradient(120% 150% at 0% 0%, rgba(221,184,250,.15),
+      transparent 58%), var(--panel); }
+  .eyebrow { font-size:10.5px; font-weight:700; letter-spacing:.2em;
+    text-transform:uppercase; color:var(--lav); display:inline-flex;
+    align-items:center; gap:7px; }
+  .eyebrow::before { content:''; width:7px; height:7px; border-radius:50%;
+    background:var(--lav); }
+
+  .now .name { font-family:var(--display); font-size:clamp(26px,3.6vw,42px);
+    line-height:1.02; margin:11px 0 8px; letter-spacing:.006em; }
+  .now .sub { color:var(--dim); font-size:12.5px;
+    font-variant-numeric:tabular-nums; }
+
+  .tl { display:flex; height:30px; border-radius:10px; overflow:hidden;
+    margin-top:16px; background:#000; }
+  .tl div { position:relative; display:flex; align-items:center;
+    justify-content:center; overflow:hidden; font-family:var(--display);
+    font-size:10px; letter-spacing:.09em; text-transform:uppercase;
+    color:rgba(0,0,0,.72); box-shadow:inset -1px 0 0 rgba(0,0,0,.45); }
+
+  .legend { display:flex; gap:7px; flex-wrap:wrap; margin-top:13px; }
+  .legend span { display:inline-flex; align-items:center; gap:6px;
+    padding:5px 11px; border-radius:999px; background:var(--panel2);
+    border:1px solid var(--line); font-size:10px; font-weight:700;
+    letter-spacing:.11em; text-transform:uppercase; color:var(--dim); }
+  .legend i { width:8px; height:8px; border-radius:3px; }
+
+  /* ---- a blend --------------------------------------------------------- */
+  .blend { border:1px solid var(--line); border-radius:18px; margin-bottom:10px;
+    background:var(--panel); overflow:hidden;
+    transition:border-color .15s, background .15s; }
+  .blend:hover { border-color:var(--line2); }
+  .blend.open { border-color:#3c3c46; background:#141418; }
+  .blend > .head { display:grid; grid-template-columns:66px 1fr auto 34px;
+    gap:16px; align-items:center; padding:15px 16px; cursor:pointer; }
+  .score { font-family:var(--display); font-size:29px; line-height:1;
+    font-variant-numeric:tabular-nums; }
+  .rank { font-size:10px; color:var(--dim2); letter-spacing:.14em;
+    text-transform:uppercase; font-weight:700; margin-top:5px; }
+  .title { font-family:var(--display); font-size:19px; line-height:1.14;
+    letter-spacing:.01em; }
+  .cues { font-size:11.5px; color:var(--dim); margin-top:5px;
+    font-variant-numeric:tabular-nums; }
+  .cues b { color:var(--ink); font-weight:600; }
+  .right { text-align:right; }
+  .bpm { font-family:var(--display); font-size:17px;
+    font-variant-numeric:tabular-nums; }
+  .bpm em { font-style:normal; font-size:10px; color:var(--dim2);
+    letter-spacing:.1em; margin-left:3px; }
+  .keyline { font-size:10.5px; color:var(--dim); letter-spacing:.05em;
+    margin-top:4px; }
+  /* The lime disc is the deck's accordion affordance; it turns lavender and
+     rotates into a close cross when the blend is open. */
+  .plus { width:34px; height:34px; border-radius:50%; background:var(--lime);
+    border:0; color:#000; display:grid; place-items:center; cursor:pointer;
+    padding:0; transition:transform .2s ease, background .2s ease; }
+  .plus svg { width:14px; height:14px; display:block; }
+  .blend.open .plus { transform:rotate(45deg); background:var(--lav); }
+
+  .tag { display:inline-block; padding:2px 8px; border-radius:999px;
+    font-size:9.5px; font-weight:700; letter-spacing:.09em;
+    text-transform:uppercase; background:var(--panel2);
+    border:1px solid var(--line); color:var(--dim); margin-left:7px; }
+  .tag.alt { background:var(--lav); border-color:var(--lav); color:#000; }
+
+  .body { display:none; padding:0 16px 18px; }
+  .blend.open .body { display:block; }
+  .parts { display:grid; grid-template-columns:repeat(auto-fit,minmax(118px,1fr));
+    gap:11px; padding-top:16px; border-top:1px solid var(--line); }
+  .part .n { font-size:9.5px; color:var(--dim); text-transform:uppercase;
+    letter-spacing:.12em; font-weight:700; display:flex;
+    justify-content:space-between; }
+  .part .n span:last-child { color:var(--ink);
+    font-variant-numeric:tabular-nums; letter-spacing:.02em; }
+  .part .track { height:6px; background:#000; border-radius:3px; margin-top:7px;
+    overflow:hidden; }
+  .part .fill { height:100%; border-radius:3px; }
+
+  .align { margin-top:20px; }
+  .align .cap { font-family:var(--display); font-size:11px; letter-spacing:.15em;
+    text-transform:uppercase; color:var(--dim); margin-bottom:10px; }
+  .lanes { position:relative; }
+  .lane { position:relative; height:30px; margin-bottom:6px; background:#000;
+    border-radius:9px; overflow:hidden; }
+  .lane .seg { position:absolute; top:0; height:100%;
+    box-shadow:inset -1px 0 0 rgba(0,0,0,.5); }
+  .lane .lab { position:absolute; left:11px; top:8px; font-size:10px;
+    font-weight:700; letter-spacing:.13em; text-transform:uppercase; color:#fff;
+    z-index:2; text-shadow:0 1px 5px rgba(0,0,0,.95); }
+  /* One line through both lanes: the bar where one record becomes the other. */
+  .mark { position:absolute; top:-6px; bottom:0; width:2px; background:var(--lime);
+    z-index:3; box-shadow:0 0 0 1px rgba(0,0,0,.55), 0 0 14px rgba(201,246,94,.8); }
+  .mark::after { content:''; position:absolute; top:-4px; left:-4px; width:10px;
+    height:10px; border-radius:50%; background:var(--lime); }
+
+  .note { display:inline-flex; align-items:center; gap:9px; margin-top:15px;
+    padding:7px 13px 7px 8px; border-radius:999px;
+    background:rgba(255,162,61,.12); border:1px solid rgba(255,162,61,.32);
+    color:var(--amber); font-size:11.5px; font-weight:600; }
+  .note i { width:17px; height:17px; border-radius:50%; background:var(--amber);
+    color:#000; display:grid; place-items:center; font-style:normal;
+    font-size:11px; font-weight:700; }
+
+  @media (max-width:900px) {
+    main { grid-template-columns:1fr; height:auto; }
+    #list { max-height:46vh; }
+    #main { padding:18px; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">
+    <span class="brandmark" aria-hidden="true"><svg width="16" height="18" viewBox="0 0 16 18" fill="none">
+      <path d="M3 1.6v14.8" stroke="#000" stroke-width="2.4" stroke-linecap="round"/>
+      <path d="M5.2 2.4 14 6.4 5.2 10.4Z" fill="#000"/></svg></span>
+    <span class="wordmark">cuepoint</span>
+  </div>
+  <div class="hpills">
+    <span class="pill" id="meta">loading…</span>
+  </div>
+</header>
+<main>
+  <div id="list">
+    <div class="searchwrap">
+      <input id="search" placeholder="Search the crate…" autocomplete="off">
+      <div class="filters">
+        <div class="frow">
+          <button class="chip on" id="f-all" type="button">All</button>
+          <button class="chip" id="f-compat" type="button" disabled>Compatible</button>
+          <span class="fcount" id="fcount"></span>
+        </div>
+        <div class="frow" id="frow-compat" hidden>
+          <span class="flabel">bpm</span>
+          <button class="chip sm" data-pct="3" type="button">±3%</button>
+          <button class="chip sm on" data-pct="6" type="button">±6%</button>
+          <button class="chip sm" data-pct="8" type="button">±8%</button>
+          <button class="chip sm" data-pct="16" type="button">±16%</button>
+        </div>
+        <div class="frow" id="frow-key" hidden>
+          <span class="flabel">key</span>
+          <button class="chip sm" data-key="any" type="button">Any</button>
+          <button class="chip sm on" data-key="compat" type="button">Compatible</button>
+          <button class="chip sm" data-key="exact" type="button">Exact</button>
+        </div>
+        <div class="frow scroll" id="frow-genre"></div>
+      </div>
+    </div>
+    <div id="rows"></div>
+  </div>
+  <div id="main">
+    <div id="body"><div class="empty"><b>Pick a record</b><span>Cuepoint scores the whole crate against it.</span></div></div>
+  </div>
+</main>
+<script>
+const ROLES = ['intro','build','peak','breakdown','verse','bridge','outro'];
+const col = r => getComputedStyle(document.documentElement).getPropertyValue('--'+r) || '#666';
+const clock = ms => { const s=Math.max(0,ms/1000|0); return (s/60|0)+':'+String(s%60).padStart(2,'0'); };
+const esc = s => s.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const PLUS = '<svg viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M7 1.4v11.2M1.4 7h11.2" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>';
+let TRACKS = [], current = null;
+
+async function get(u){ const r = await fetch(u); return r.json(); }
+
+function timeline(phrases, total){
+  return '<div class="tl">' + phrases.map(p => {
+    const w = 100 * (p.end_ms - p.start_ms) / total;
+    return `<div style="width:${w}%;background:${col(p.role)}" title="${p.role} · bar ${p.start_bar} · ${p.bars} bars · ${clock(p.start_ms)}">${w > 6 ? p.role : ''}</div>`;
+  }).join('') + '</div>';
+}
+
+function legend(){
+  return '<div class="legend">' + ROLES.map(r =>
+    `<span><i style="background:${col(r)}"></i>${r}</span>`).join('') + '</div>';
+}
+
+/* The two records drawn on one time axis, shifted so the outgoing cue and the
+   incoming cue sit on the same vertical line -- which is what the blend is.
+   The marker sits outside both lanes so it can bleed past their rounded ends. */
+function aligned(playing, b){
+  const pre = 40000, post = 90000;
+  const span = pre + post;
+  const px = ms => 100 * ms / span;
+  const lane = (phrases, cue, label) => {
+    const off = pre - cue;
+    const segs = phrases.filter(p => p.end_ms + off > 0 && p.start_ms + off < span)
+      .map(p => `<div class="seg" style="left:${px(p.start_ms+off)}%;width:${px(p.end_ms-p.start_ms)}%;background:${col(p.role)}"></div>`).join('');
+    return `<div class="lane">${segs}<div class="lab">${label}</div></div>`;
+  };
+  return `<div class="align"><div class="cap">Aligned at the mix point — ${b.bars} bars together</div>
+    <div class="lanes">
+      ${lane(playing.phrases, b.cue_out_ms, 'out · ' + clock(b.cue_out_ms))}
+      ${lane(b.track.phrases, b.cue_in_ms, 'in · ' + clock(b.cue_in_ms))}
+      <div class="mark" style="left:${px(pre)}%"></div>
+    </div></div>`;
+}
+
+function parts(b){
+  const order = ['tempo','groove','vocal','harmonic','energy','role','sub'];
+  return '<div class="parts">' + order.map(k => {
+    const v = b.parts[k], c = v > .75 ? 'var(--lime)' : v > .5 ? 'var(--amber)' : 'var(--red)';
+    return `<div class="part"><div class="n"><span>${k}</span><span>${v.toFixed(2)}</span></div>
+      <div class="track"><div class="fill" style="width:${v*100}%;background:${c}"></div></div></div>`;
+  }).join('') + '</div>';
+}
+
+function blendCard(playing, b, i){
+  const alt = b.ratio !== 1 ? `<span class="tag alt">${b.ratio === 2 ? 'half-time' : 'double-time'}</span>` : '';
+  const note = b.weakest_value < .6 ? `<div class="note"><i>!</i>Watch the ${b.weakest} — ${b.weakest_value.toFixed(2)}</div>` : '';
+  const hot = b.score >= .85 ? ' style="color:var(--lime)"' : '';
+  return `<div class="blend"><div class="head">
+      <div><div class="score"${hot}>${b.score.toFixed(2)}</div><div class="rank">#${i+1}</div></div>
+      <div><div class="title">${esc(b.track.title)}</div>
+        <div class="cues">out <b>${clock(b.cue_out_ms)}</b> (${b.from_role})
+          → in <b>${clock(b.cue_in_ms)}</b> (${b.to_role}) · <b>${b.bars}</b> bars
+          · pitch <b>${b.stretch_pct > 0 ? '+' : ''}${b.stretch_pct}%</b></div></div>
+      <div class="right"><div class="bpm">${b.track.tempo}<em>BPM</em></div>
+        <div class="keyline">${b.track.key} · ${b.track.camelot}${alt}</div></div>
+      <button class="plus" type="button" aria-label="Show the score breakdown">${PLUS}</button>
+    </div><div class="body">${parts(b)}${aligned(playing, b)}${note}</div></div>`;
+}
+
+async function open_(id, push){
+  current = id;
+  if (push !== false) location.hash = id;
+  document.getElementById('f-compat').disabled = false;
+  render(document.getElementById('search').value);
+  const el = document.getElementById('body');
+  el.innerHTML = '<div class="empty"><b>Scoring</b><span>Running the crate against this record.</span></div>';
+  const d = await get('/api/next/' + id + '?n=12');
+  const p = d.playing;
+  el.innerHTML = `<div class="now"><div class="eyebrow">Selected</div>
+      <div class="name">${esc(p.title)}</div>
+      <div class="sub">${p.tempo} BPM · key ${p.key} (${p.camelot}) · ${clock(p.duration_ms)} · ${p.phrases.length} phrases</div>
+      ${timeline(p.phrases, p.duration_ms || p.phrases[p.phrases.length-1].end_ms)}${legend()}</div>`
+    + (d.blends.length ? d.blends.map((b,i) => blendCard(p,b,i)).join('')
+       : '<div class="empty"><b>Out of reach</b><span>Nothing in the crate is within pitch range.</span></div>');
+  document.getElementById('main').scrollTop = 0;
+  el.querySelectorAll('.blend .head').forEach(h =>
+    h.onclick = () => h.parentElement.classList.toggle('open'));
+  if (location.hash.includes('!')) {          // deep link straight into a blend
+    const card = el.querySelectorAll('.blend')[+location.hash.split('!')[1] || 0];
+    if (card) card.classList.add('open');
+  }
+}
+
+/* ---- the compatible-track filter -------------------------------------
+   VirtualDJ's browser filter is, underneath, two rules: is the incoming
+   record reachable on the pitch fader, and do the two keys sit next to each
+   other on the Camelot wheel. Both are hard include/exclude, which is what
+   makes it a filter rather than the soft ranking mix.py already does. */
+const F = { compat:false, pct:6, key:'compat', genres:new Set() };
+
+const CAM = c => { const m = /^(\d{1,2})([AB])$/.exec(c || ''); 
+                   return m ? [+m[1], m[2]] : null; };
+
+function keyOk(a, b, mode){
+  const pa = CAM(a), pb = CAM(b);
+  if (!pa || !pb) return true;             // unknown key: never hide it
+  const [na, la] = pa, [nb, lb] = pb;
+  if (mode === 'exact') return na === nb && la === lb;
+  if (na === nb) return true;              // same key, or relative major/minor
+  const d = Math.min((na - nb + 12) % 12, (nb - na + 12) % 12);
+  return la === lb && d === 1;             // one step round the wheel
+}
+
+/* Half and double time count as reachable: the scorer already rates those
+   blends, so the filter must not hide what it would happily recommend. */
+function bpmOk(t, ref, pct){
+  if (!ref) return true;
+  const lo = ref * (1 - pct/100), hi = ref * (1 + pct/100);
+  return (t >= lo && t <= hi) || (t*2 >= lo && t*2 <= hi) || (t/2 >= lo && t/2 <= hi);
+}
+
+function passes(t, ref, q){
+  if (q && !(t.title.toLowerCase().includes(q) ||
+             (t.folder || '').toLowerCase().includes(q))) return false;
+  if (F.genres.size && !F.genres.has(t.folder)) return false;
+  if (F.compat && ref && t.id !== ref.id) {
+    if (!bpmOk(t.tempo, ref.tempo, F.pct)) return false;
+    if (F.key !== 'any' && !keyOk(t.camelot, ref.camelot, F.key)) return false;
+  }
+  return true;
+}
+
+function render(q){
+  q = (q || '').toLowerCase();
+  const ref = TRACKS.find(t => t.id === current) || null;
+  const hits = TRACKS.filter(t => passes(t, ref, q));
+  const rows = document.getElementById('rows');
+  rows.innerHTML = hits.length ? hits.map(t =>
+    `<div class="row${t.id===current?' on':''}" data-id="${t.id}">
+       <div class="t">${esc(t.title)}</div>
+       <div class="s">${t.tempo} BPM · ${t.camelot} · ${clock(t.duration_ms)}</div></div>`).join('')
+    : '<div class="fhint">Nothing matches. Loosen the filter.</div>';
+  document.getElementById('fcount').textContent =
+    hits.length === TRACKS.length ? `${TRACKS.length}` : `${hits.length} / ${TRACKS.length}`;
+  rows.querySelectorAll('.row').forEach(r => r.onclick = () => open_(+r.dataset.id));
+}
+
+function syncFilterUI(){
+  const on = F.compat;
+  document.getElementById('f-compat').classList.toggle('on', on);
+  document.getElementById('f-all').classList.toggle('on', !on && !F.genres.size);
+  document.getElementById('frow-compat').hidden = !on;
+  document.getElementById('frow-key').hidden = !on;
+  document.querySelectorAll('[data-pct]').forEach(b =>
+    b.classList.toggle('on', +b.dataset.pct === F.pct));
+  document.querySelectorAll('[data-key]').forEach(b =>
+    b.classList.toggle('on', b.dataset.key === F.key));
+  document.querySelectorAll('[data-genre]').forEach(b =>
+    b.classList.toggle('on', F.genres.has(b.dataset.genre)));
+}
+
+function initFilters(){
+  const folders = [...new Set(TRACKS.map(t => t.folder).filter(Boolean))].sort();
+  document.getElementById('frow-genre').innerHTML = folders.map(f =>
+    `<button class="chip sm" type="button" data-genre="${esc(f)}">${esc(f)}</button>`).join('');
+
+  const redraw = () => { syncFilterUI(); render(document.getElementById('search').value); };
+
+  document.getElementById('f-all').onclick = () => {
+    F.compat = false; F.genres.clear(); redraw();
+  };
+  document.getElementById('f-compat').onclick = () => { F.compat = !F.compat; redraw(); };
+  document.querySelectorAll('[data-pct]').forEach(b =>
+    b.onclick = () => { F.pct = +b.dataset.pct; redraw(); });
+  document.querySelectorAll('[data-key]').forEach(b =>
+    b.onclick = () => { F.key = b.dataset.key; redraw(); });
+  document.querySelectorAll('[data-genre]').forEach(b =>
+    b.onclick = () => {
+      F.genres.has(b.dataset.genre) ? F.genres.delete(b.dataset.genre)
+                                    : F.genres.add(b.dataset.genre);
+      redraw();
+    });
+  syncFilterUI();
+}
+
+(async () => {
+  TRACKS = (await get('/api/tracks')).tracks;
+  document.getElementById('meta').textContent = TRACKS.length + ' mixable tracks';
+  initFilters();
+  render('');
+  document.getElementById('search').oninput = e => render(e.target.value);
+  const fromHash = () => {
+    const id = parseInt(location.hash.replace('#',''), 10);
+    if (id && id !== current) open_(id, false);
+  };
+  addEventListener('hashchange', fromHash);
+  fromHash();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+# Everything below is derived from the rekordbox collection and rebuilt by
+# `build` and `extract`. None of it belongs in the repository, and the audio
+# it describes is not ours to distribute.
+.venv/
+__pycache__/
+*.pyc
+
+cuepoint.db
+features/
+
+# Build artefacts and the recognition index (20 MB, rebuilt by `index`).
+build/
+dist/
+*.egg-info/
+fingerprint.npz
