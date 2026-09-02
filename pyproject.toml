@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cuepoint"
+version = "0.1.0"
+description = "What to play next, and exactly where to bring it in. Reads a rekordbox collection, read-only."
+readme = "README.md"
+authors = [{ name = "Ena Otuokon", email = "otuokonhelena@gmail.com" }]
+requires-python = ">=3.9"
+license = { text = "MIT" }
+keywords = ["dj", "rekordbox", "mixing", "harmonic-mixing", "music"]
+classifiers = [
+    "Environment :: Console",
+    "Intended Audience :: End Users/Desktop",
+    "Programming Language :: Python :: 3",
+    "Topic :: Multimedia :: Sound/Audio :: Analysis",
+]
+
+# Deliberately small. Everything else -- the ANLZ parser, the beat grid work,
+# the spectral features -- is a few dozen lines of numpy in this package.
+# ffmpeg is required too, but it is a binary, not a wheel: `cuepoint doctor`
+# checks for it and says how to install it.
+dependencies = [
+    "numpy>=1.21",
+    "scipy>=1.7",
+]
+
+[project.scripts]
+cuepoint = "cuepoint.__main__:main"
+
+[tool.setuptools]
+packages = ["cuepoint"]
+
+[tool.setuptools.package-data]
+# The web UI and its self-hosted typefaces ship inside the wheel, so the tool
+# works with no network at all.
+cuepoint = ["static/*.html", "static/fonts/*"]
