@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cuepoint"
-version = "0.1.5"
+version = "0.1.6"
 description = "What to play next, and exactly where to bring it in. Reads a rekordbox collection, read-only."
 readme = "README.md"
 authors = [{ name = "Ena Otuokon", email = "otuokonhelena@gmail.com" }]
