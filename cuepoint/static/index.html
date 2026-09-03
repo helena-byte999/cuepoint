@@ -138,6 +138,17 @@
     border:0; background:var(--lime); color:#000; font:700 13px var(--ui);
     letter-spacing:.03em; cursor:pointer; }
   .intro .go:hover { background:#d7ff72; }
+  /* Both modes stay on screen: a single button that renames itself hides the
+     fact that the other one exists. */
+  .seg { display:inline-flex; background:var(--panel2); border:1px solid var(--line);
+    border-radius:999px; padding:3px; gap:2px; flex:0 0 auto; }
+  .seg button { border:0; background:none; color:var(--dim2); cursor:pointer;
+    border-radius:999px; padding:5px 13px; font:700 10px var(--ui);
+    letter-spacing:.11em; text-transform:uppercase; white-space:nowrap;
+    transition:background .15s, color .15s; }
+  .seg button:hover:not(.on) { color:var(--ink); }
+  .seg button.on { background:var(--lime); color:#000; }
+
   .help { width:33px; height:33px; border-radius:50%; background:var(--panel2);
     border:1px solid var(--line); color:var(--dim); font:700 13px var(--ui);
     cursor:pointer; flex:0 0 auto; }
@@ -431,8 +442,12 @@
   </button>
   <div class="hpills">
     <span class="pill" id="meta">loading…</span>
-    <button class="pill" id="begbtn" type="button"
-      title="Plain-English explanations, difficulty labels and bar counts">beginner</button>
+    <div class="seg" id="modeseg" role="group" aria-label="Detail level">
+      <button type="button" data-mode="1"
+        title="Plain English, difficulty labels and bar counts">Beginner</button>
+      <button type="button" data-mode="0"
+        title="The seven scoring components, as measured">Expert</button>
+    </div>
     <button class="help" id="help" type="button" title="How this works">?</button>
   </div>
 </header>
@@ -643,8 +658,8 @@ function setBeginner(on){
   BEGINNER = on;
   try { localStorage.setItem('cuepoint.beginner', on ? '1' : '0'); } catch (e) {}
   document.body.classList.toggle('beginner', on);
-  const b = document.getElementById('begbtn');
-  if (b) { b.classList.toggle('lime', on); b.textContent = on ? 'beginner' : 'expert'; }
+  document.querySelectorAll('#modeseg button').forEach(x =>
+    x.classList.toggle('on', (x.dataset.mode === '1') === on));
   if (current) open_(current, false);
 }
 
@@ -1114,7 +1129,8 @@ function initFilters(){
   document.getElementById('search').oninput = e => render(e.target.value);
   // Back to the top: drop the selected record from the URL and start clean,
   // which also tears down anything currently playing.
-  document.getElementById('begbtn').onclick = () => setBeginner(!BEGINNER);
+  document.querySelectorAll('#modeseg button').forEach(x =>
+    x.onclick = () => setBeginner(x.dataset.mode === '1'));
   setBeginner(BEGINNER);
   document.getElementById('help').onclick = showIntro;
   document.getElementById('introgo').onclick = hideIntro;
