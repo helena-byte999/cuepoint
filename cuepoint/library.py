@@ -33,11 +33,18 @@ def rekordbox_dirs() -> list[Path]:
     if env:
         return [Path(env).expanduser()]
     home = Path.home()
-    return [
+    cand = [
         home / "Library/Pioneer/rekordbox",                   # macOS
         Path(os.environ.get("APPDATA", home / "AppData/Roaming")) / "Pioneer/rekordbox",
         home / "AppData/Roaming/Pioneer/rekordbox",           # Windows
     ]
+    # APPDATA usually resolves to the third entry, and listing the same folder
+    # twice in a "looked in" error just makes it look broken.
+    seen, out = set(), []
+    for d in cand:
+        if str(d) not in seen:
+            seen.add(str(d)); out.append(d)
+    return out
 
 
 def find_rekordbox() -> Path | None:
