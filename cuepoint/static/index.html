@@ -268,14 +268,6 @@
      A score is a claim; the only way to check it is to listen. The two
      records are decoded up front so the crossfade can be scheduled on the
      audio clock rather than with timers, which would drift off the beat. */
-  /* Loop is a state, not an action, so it stays lit rather than swapping icon. */
-  .loop { width:30px; height:30px; border-radius:50%; background:none;
-    border:1px solid var(--line); color:var(--dim2); display:grid;
-    place-items:center; cursor:pointer; padding:0;
-    transition:background .15s, color .15s, border-color .15s; }
-  .loop:hover { color:var(--ink); border-color:var(--line2); }
-  .loop.on { background:var(--lav); border-color:var(--lav); color:#000; }
-  .loop svg { width:14px; height:14px; display:block; }
   .play { width:34px; height:34px; border-radius:50%; background:var(--lav);
     border:0; color:#000; display:grid; place-items:center; cursor:pointer;
     padding:0; transition:background .15s, transform .15s; }
@@ -305,6 +297,28 @@
   .xf.on { display:block; }
   .xf i { display:block; height:100%; width:0;
     background:linear-gradient(90deg, var(--lav), var(--lime)); }
+
+  /* ---- effects -----------------------------------------------------------
+     The two that actually get used on a transition. The filter is one knob
+     like a mixer's: left of centre takes the low-pass down, right brings the
+     high-pass up, centre is off. The echo is a feedback delay timed to the
+     bar, for throwing the outgoing record's tail. */
+  .fx { margin-top:16px; padding-top:16px; border-top:1px solid var(--line); }
+  .fxrow { display:grid; grid-template-columns:30px 1fr auto; gap:11px;
+    align-items:center; margin-bottom:9px; }
+  .fxrow input[type=range] { width:100%; accent-color:var(--lav); height:3px;
+    cursor:pointer; }
+  .fxval { font-size:10px; font-weight:700; letter-spacing:.08em;
+    text-transform:uppercase; color:var(--dim2); min-width:74px;
+    text-align:right; font-variant-numeric:tabular-nums; }
+  .fxval.on { color:var(--lav); }
+  .echorow { display:flex; align-items:center; gap:6px; margin-top:11px; }
+  .echip { border:1px solid var(--line); background:var(--panel); color:var(--dim);
+    border-radius:999px; padding:5px 11px; font:700 10px var(--ui);
+    letter-spacing:.06em; cursor:pointer; font-variant-numeric:tabular-nums;
+    transition:background .12s, color .12s, border-color .12s; }
+  .echip:hover:not(.on) { color:var(--ink); border-color:var(--line2); }
+  .echip.on { background:var(--bridge); border-color:var(--bridge); color:#000; }
 
   /* ---- beginner mode -----------------------------------------------------
      The scorer already knows which blends need hands and which do not; it just
@@ -348,7 +362,7 @@
     transition:border-color .15s, background .15s; }
   .blend:hover { border-color:var(--line2); }
   .blend.open { border-color:#3c3c46; background:#141418; }
-  .blend > .head { display:grid; grid-template-columns:60px 1fr auto 30px 34px 34px;
+  .blend > .head { display:grid; grid-template-columns:66px 1fr auto 34px 34px;
     gap:16px; align-items:center; padding:15px 16px; cursor:pointer; }
   .score { font-family:var(--display); font-size:29px; line-height:1;
     font-variant-numeric:tabular-nums; }
@@ -447,29 +461,6 @@
     text-transform:uppercase; color:var(--lime); font-variant-numeric:tabular-nums;
     white-space:nowrap; }
   .swapat.off { opacity:.35; pointer-events:none; }
-  /* Loop length the way a DJ mixer offers it -- powers of two, in bars. */
-  .looprow { display:flex; align-items:center; gap:5px; margin-top:11px;
-    flex-wrap:wrap; }
-  .lchip { border:1px solid var(--line); background:var(--panel); color:var(--dim);
-    border-radius:999px; min-width:30px; padding:5px 9px; font:700 10.5px var(--ui);
-    cursor:pointer; font-variant-numeric:tabular-nums;
-    transition:background .12s, color .12s, border-color .12s; }
-  .lchip:hover:not(.on) { color:var(--ink); border-color:var(--line2); }
-  .lchip.on { background:var(--lav); border-color:var(--lav); color:#000; }
-  .lunit { font-size:9.5px; font-weight:700; letter-spacing:.13em;
-    text-transform:uppercase; color:var(--dim2); }
-  /* Where the loop starts. Teal, so it reads apart from mix / swap / playhead. */
-  .loopin { position:absolute; top:-6px; bottom:0; width:2px; background:var(--verse);
-    z-index:5; cursor:ew-resize;
-    box-shadow:0 0 0 1px rgba(0,0,0,.5), 0 0 12px rgba(62,216,198,.75); }
-  .loopin::after { content:''; position:absolute; top:-5px; left:-5px; width:12px;
-    height:12px; border-radius:3px 0 0 3px; background:var(--verse); }
-  .loopin::before { content:'loop in'; position:absolute; top:-24px; left:0;
-    white-space:nowrap; font:700 9.5px var(--ui); letter-spacing:.1em;
-    text-transform:uppercase; color:#000; background:var(--verse);
-    padding:2px 7px; border-radius:999px; }
-  .loopzone { position:absolute; top:-6px; bottom:0; z-index:1;
-    background:rgba(62,216,198,.10); border-left:0; border-right:0; }
   .clash { display:inline-flex; align-items:center; gap:8px; margin-top:12px;
     padding:7px 13px 7px 8px; border-radius:999px;
     background:rgba(255,95,200,.12); border:1px solid rgba(255,95,200,.32);
@@ -565,9 +556,9 @@
           over exactly the bars chosen.</span></p></div>
         <div class="step"><b>5</b><p>Shape it while it runs.
           <span>Drag the lavender line to move where the bass changes hands.
-          Cut lows, mids or highs on either deck. If a vocal is still going on
-          the way out, it's held under the new record to finish rather than
-          being cut.</span></p></div>
+          Cut lows, mids or highs on either deck, sweep the filter, or throw an
+          echo timed to the bar. If a vocal is still going on the way out, it's
+          held under the new record to finish rather than being cut.</span></p></div>
         <div class="step"><b>6</b><p>Fix what clashes.
           <span>Where a blend is weak the card names it — two kicks beating,
           two vocals at once, kicks on different sixteenths — and says which
@@ -618,7 +609,6 @@ const esc = s => s.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','
 const PLUS = '<svg viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M7 1.4v11.2M1.4 7h11.2" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>';
 const PLAY = '<svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3 1.6 12 7 3 12.4Z" fill="currentColor"/></svg>';
 const STOP = '<svg viewBox="0 0 14 14" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="1.4" fill="currentColor"/></svg>';
-const LOOP = '<svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M4 5h7a2.6 2.6 0 0 1 0 5.2H3.4M5.6 2.6 3.2 5l2.4 2.4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 let TRACKS = [], current = null;
 
 async function get(u){ const r = await fetch(u); return r.json(); }
@@ -654,8 +644,6 @@ function aligned(playing, b){
       ${lane(playing.phrases, b.cue_out_ms, 'out · ' + clock(b.cue_out_ms))}
       ${lane(b.track.phrases, b.cue_in_ms, 'in · ' + clock(b.cue_in_ms))}
       <div class="mark" style="left:${px(pre)}%"></div>
-      <div class="loopzone"></div>
-      <div class="loopin"></div>
       <div class="swapline" data-lbl="bass ${Math.round(b.bars/2)}"
         style="left:${px(pre + (b.bars/2) * barMs)}%"></div>
       <div class="playhead"></div>
@@ -671,9 +659,7 @@ function parts(b){
   }).join('') + '</div>';
 }
 
-
 /* What actually clashes, in the scorer's own terms, and which band fixes it. */
-
 
 /* `stretch` is how much faster the incoming record already is than the
    outgoing one. The pitch fader has to move the other way to close that gap,
@@ -777,9 +763,21 @@ function eqBlock(b){
     ${row('out','out')}${row('in','in')}
     <label class="swap"><input type="checkbox" class="bassswap" checked>
       swap the bass at</label>
-    <div class="looprow"><span class="flabel">loop</span>
-      ${[1,2,4,8,16,32].map(n => `<button class="lchip${n===16?' on':''}" type="button" data-loop="${n}">${n}</button>`).join('')}
-      <span class="lunit">bars</span></div>
+    <div class="fx">
+      <div class="cap">Effects</div>
+      <div class="fxrow"><span class="eqlbl">out</span>
+        <input type="range" class="filt" data-deck="out" min="-100" max="100" value="0">
+        <span class="fxval" data-for="out">filter off</span></div>
+      <div class="fxrow"><span class="eqlbl">in</span>
+        <input type="range" class="filt" data-deck="in" min="-100" max="100" value="0">
+        <span class="fxval" data-for="in">filter off</span></div>
+      <div class="echorow"><span class="flabel">echo</span>
+        <button class="echip" type="button" data-echo="0">off</button>
+        <button class="echip" type="button" data-echo="0.25">1/4</button>
+        <button class="echip" type="button" data-echo="0.5">1/2</button>
+        <button class="echip" type="button" data-echo="1">1 bar</button>
+      </div>
+    </div>
     <div class="swapat"><input type="range" class="swappos" min="0" max="${b.bars}"
       step="1" value="${Math.round(b.bars / 2)}">
       <span class="swaplbl">bar ${Math.round(b.bars / 2)} of ${b.bars}</span></div>
@@ -799,13 +797,10 @@ function blendCard(playing, b, i){
       <div class="right"><div class="bpm">${b.track.tempo}<em>BPM</em></div>
         <div class="keyline">${b.track.key} · ${b.track.camelot}${alt}</div>
         ${BEGINNER ? `<div style="margin-top:6px"><span class="diff ${difficulty(b)[0]}">${difficulty(b)[1]}</span></div>` : ''}</div>
-      <button class="loop" type="button" aria-label="Repeat 16 bars, then leave"
-        title="Loop 16 bars, then leave">${LOOP}</button>
       <button class="play" type="button" aria-label="Play this transition">${PLAY}</button>
       <button class="plus" type="button" aria-label="Show why this scored what it did">${PLUS}</button>
     </div><div class="body">${BEGINNER ? plainEnglish(b, playing) : parts(b)}${aligned(playing, b)}${eqBlock(b)}${note}</div></div>`;
 }
-
 
 /* ---- hearing the blend ---------------------------------------------------
    A hard cut between two records is not a mix, so this does what a DJ does:
@@ -825,7 +820,6 @@ function blendCard(playing, b, i){
    cut anyway, not a mute. */
 const KILL_DB = -40, EQ_GLIDE = 0.03;
 
-
 /* Where in the crossfade the bass changes hands. A DJ does not always do it
    halfway: early keeps the incoming record's weight, late holds the outgoing
    groove longer. Movable, and re-schedulable mid-blend as long as the moment
@@ -836,64 +830,6 @@ const KILL_DB = -40, EQ_GLIDE = 0.03;
    mistake. Moving it while the blend runs re-schedules on the audio clock,
    so long as the swap has not already happened. */
 const LANE_PRE = 40000, LANE_SPAN = 130000;
-
-/* The loop in-point and the shaded region it covers, drawn on the same axis
-   as everything else and dragged the same way. */
-function bindLoop(card, playing, b){
-  const lanes = card.querySelector('.lanes');
-  const line  = card.querySelector('.loopin');
-  const zone  = card.querySelector('.loopzone');
-  if (!lanes || !line) return;
-  const barMs = 4 * 60000 / playing.tempo;
-  if (card.__loopIn === undefined) card.__loopIn = -8;
-
-  const draw = () => {
-    const chip = card.querySelector('.lchip.on');
-    const bars = chip ? +chip.dataset.loop : 16;
-    const inMs = card.__loopIn * barMs;
-    const l = 100 * (LANE_PRE + inMs) / LANE_SPAN;
-    const w = 100 * (bars * barMs) / LANE_SPAN;
-    line.style.left = l + '%';
-    zone.style.left = l + '%';
-    zone.style.width = Math.min(w, 100 - l) + '%';
-  };
-  card.__drawLoop = draw;
-  draw();
-
-  const restart = () => {
-    if (PLAYING && PLAYING.card === card) {
-      const wasLoop = card.querySelector('.loop').classList.contains('on');
-      stopBlend();
-      if (wasLoop) card.querySelector('.loop').classList.add('on');
-      playBlend(playing, b, card);
-    }
-  };
-
-  card.querySelectorAll('.lchip').forEach(c => c.onclick = ev => {
-    ev.stopPropagation();
-    card.querySelectorAll('.lchip').forEach(x => x.classList.remove('on'));
-    c.classList.add('on');
-    draw(); restart();
-  });
-
-  const fromX = x => {
-    const r = lanes.getBoundingClientRect();
-    const ms = ((x - r.left) / r.width) * LANE_SPAN - LANE_PRE;
-    return Math.max(-16, Math.min(16, Math.round(ms / barMs)));
-  };
-  let dragging = false;
-  const move = e => { if (!dragging) return; e.preventDefault();
-    card.__loopIn = fromX(e.touches ? e.touches[0].clientX : e.clientX); draw(); };
-  const up = () => { if (!dragging) return; dragging = false;
-    document.removeEventListener('mousemove', move);
-    document.removeEventListener('mouseup', up);
-    restart(); };
-  line.addEventListener('mousedown', e => {
-    e.preventDefault(); e.stopPropagation(); dragging = true;
-    document.addEventListener('mousemove', move);
-    document.addEventListener('mouseup', up);
-  });
-}
 
 function bindSwapLine(card, playing, b){
   const line = card.querySelector('.swapline');
@@ -970,6 +906,42 @@ function scheduleSwap(live, posBars){
   live.tSwap = tSwap;
 }
 
+/* One knob, two filters, the way a mixer's filter works: left of centre sweeps
+   a low-pass down from 20 kHz, right sweeps a high-pass up from 20 Hz, and the
+   centre detent is fully open. Frequency moves exponentially because pitch
+   does -- a linear sweep spends most of its travel doing nothing audible. */
+function filterChain(){
+  const lp = AC.createBiquadFilter(); lp.type = 'lowpass';  lp.frequency.value = 20000;
+  const hp = AC.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 20;
+  lp.connect(hp);
+  return { lp, hp, input: lp, output: hp };
+}
+
+function setFilter(f, pos){                 // pos: -100 .. 100, 0 = open
+  const t = AC.currentTime, g = 0.02;
+  if (pos < 0) {
+    f.lp.frequency.setTargetAtTime(20000 * Math.pow(160 / 20000, -pos / 100), t, g);
+    f.hp.frequency.setTargetAtTime(20, t, g);
+  } else if (pos > 0) {
+    f.lp.frequency.setTargetAtTime(20000, t, g);
+    f.hp.frequency.setTargetAtTime(20 * Math.pow(4000 / 20, pos / 100), t, g);
+  } else {
+    f.lp.frequency.setTargetAtTime(20000, t, g);
+    f.hp.frequency.setTargetAtTime(20, t, g);
+  }
+}
+
+/* A feedback delay timed to the bar. The wet path is tapped off the deck and
+   fed back into itself, so it repeats and decays rather than echoing once. */
+function echoChain(barSec){
+  const send = AC.createGain(); send.gain.value = 0;
+  const dly  = AC.createDelay(4);
+  const fb   = AC.createGain(); fb.gain.value = 0.42;
+  const damp = AC.createBiquadFilter(); damp.type = 'lowpass'; damp.frequency.value = 3600;
+  send.connect(dly); dly.connect(damp); damp.connect(fb); fb.connect(dly);
+  return { send, dly, out: damp };
+}
+
 function eqChain(){
   const low  = AC.createBiquadFilter(); low.type  = 'lowshelf';  low.frequency.value  = 250;
   const mid  = AC.createBiquadFilter(); mid.type  = 'peaking';   mid.frequency.value  = 1000; mid.Q.value = 0.9;
@@ -993,21 +965,6 @@ const LEAD_BARS = 8, TAIL_BARS = 8, CURVE_N = 128;
 const VOCAL_HERE = 0.28;
 const VOCAL_TAIL_BARS = 4;      // how long to let the line resolve
 const VOCAL_FLOOR = 0.42;       // where the outgoing sits while it rides on top
-/* A transition cannot be judged in one pass. Sixteen bars -- the lead-in plus
-   the crossfade -- repeated a few times, then it leaves. Every pass is
-   scheduled up front on the audio clock so the repeats land on the beat
-   instead of drifting the way a timer would. */
-const LOOP_PASSES = 4;
-/* DJ software gives you an in-point and a length in bars, powers of two. The
-   in-point is stored as bars relative to the mix point, so it is negative
-   while the loop starts before the two records meet. */
-function loopSettings(card){
-  const chip = card.querySelector('.lchip.on');
-  const bars = chip ? +chip.dataset.loop : 16;
-  const inAt = card.__loopIn === undefined ? -8 : card.__loopIn;
-  return { bars, inAt };
-}
-
 const fadeCurves = (() => {
   const out = new Float32Array(CURVE_N), inn = new Float32Array(CURVE_N);
   for (let i = 0; i < CURVE_N; i++) {
@@ -1093,8 +1050,26 @@ async function playBlend(playing, b, card){
   const eqA = eqChain(), eqB = eqChain();
   // One chain per deck, shared by every pass, so a kill applies to all of them.
   // Each pass keeps its own gain for its own fade: source -> gain -> EQ -> out.
-  eqA.output.connect(AC.destination);
-  eqB.output.connect(AC.destination);
+  const fxA = filterChain(), fxB = filterChain();
+  const ecA = echoChain(), ecB = echoChain();
+  // deck -> EQ -> filter -> out, with a tap into the echo alongside
+  eqA.output.connect(fxA.input); eqB.output.connect(fxB.input);
+  fxA.output.connect(AC.destination); fxB.output.connect(AC.destination);
+  fxA.output.connect(ecA.send);   ecA.out.connect(AC.destination);
+  fxB.output.connect(ecB.send);   ecB.out.connect(AC.destination);
+
+  const applyFx = () => {
+    card.querySelectorAll('.filt').forEach(r =>
+      setFilter(r.dataset.deck === 'out' ? fxA : fxB, +r.value));
+    const ech = card.querySelector('.echip.on');
+    const beats = ech ? +ech.dataset.echo : 0;
+    [ecA, ecB].forEach(e => {
+      e.dly.delayTime.setTargetAtTime(Math.max(0.01, beats * 4 * barSec), AC.currentTime, 0.02);
+      e.send.gain.setTargetAtTime(beats > 0 ? 0.34 : 0, AC.currentTime, 0.03);
+    });
+  };
+  card.__fx = { fxA, fxB, ecA, ecB, applyFx };
+  applyFx();
   const killed = d => ({
     low:  !!card.querySelector(`.kill[data-deck="${d}"][data-band="low"]`).classList.contains('on'),
     mid:  !!card.querySelector(`.kill[data-deck="${d}"][data-band="mid"]`).classList.contains('on'),
@@ -1104,68 +1079,33 @@ async function playBlend(playing, b, card){
   const swapBox = card.querySelector('.bassswap');
   const doSwap = swapBox ? swapBox.checked : false;
 
-  const lpBtn  = card.querySelector('.loop');
-  const looping = !!(lpBtn && lpBtn.classList.contains('on'));
-  const L = loopSettings(card);
-  // Without the loop on, the window is the old fixed run: lead in, blend, tail.
-  const loopLen = looping ? L.bars * barSec : lead + blend + Math.max(tail, vTail);
-  const mixOff  = looping ? -L.inAt * barSec : lead;   // window start -> mix point
-  const passes  = looping ? LOOP_PASSES : 1;
-  const nodes   = [];
+  /* One pass: the outgoing runs in, the two crossfade, the incoming runs on.
+     source -> per-pass gain -> shared EQ -> out, so a kill applies to both
+     decks while each keeps its own fade. */
+  const nodes = [];
 
-  for (let k = 0; k < passes; k++) {
-    const last = k === passes - 1;
-    const p0   = t0 + k * loopLen;
-    const pEnd = p0 + loopLen;
-    const pMix = p0 + mixOff;
-    const mixInside = mixOff >= 0 && mixOff < loopLen;
-
-    /* Outgoing deck. It plays the whole window; the crossfade is applied only
-       where the mix point actually falls inside it. A loop that sits entirely
-       before the mix is just the outgoing record repeating, which is exactly
-       what looping an outro does. */
-    const outAt = cueOut - mixOff;
-    if (outAt + loopLen > 0 && mixOff > -loopLen) {
-      const sA = AC.createBufferSource(), gA = AC.createGain();
-      sA.buffer = A; sA.connect(gA); gA.connect(eqA.input);
-      if (mixInside) {
-        gA.gain.setValueAtTime(1, p0);
-        gA.gain.setValueCurveAtTime(ridesOut ? fadeToFloor : fadeCurves.out,
-                                    pMix, Math.min(blend, pEnd - pMix));
-        if (ridesOut && pMix + blend < pEnd) {
-          gA.gain.setValueAtTime(VOCAL_FLOOR, pMix + blend);
-          gA.gain.linearRampToValueAtTime(0.0001, Math.min(pMix + blend + vTail, pEnd));
-        }
-      } else {
-        gA.gain.setValueAtTime(mixOff < 0 ? 0.0001 : 1, p0);
-      }
-      sA.start(p0, Math.max(0, outAt));
-      sA.stop(last && !looping ? pEnd : pEnd + 0.02);
-      nodes.push(sA);
-    }
-
-    /* Incoming deck: only once the window reaches the mix point. */
-    if (mixOff < loopLen) {
-      const sB = AC.createBufferSource(), gB = AC.createGain();
-      sB.buffer = B; sB.playbackRate.value = rate;
-      sB.connect(gB); gB.connect(eqB.input);
-      const startAt = Math.max(p0, pMix);
-      const offset  = mixOff >= 0 ? cueIn : cueIn - rate * mixOff;
-      if (mixInside) {
-        gB.gain.setValueAtTime(0, p0);
-        gB.gain.setValueCurveAtTime(fadeCurves.inn, pMix, Math.min(blend, pEnd - pMix));
-      } else {
-        gB.gain.setValueAtTime(1, p0);
-      }
-      if (offset < B.duration) {
-        sB.start(startAt, Math.max(0, offset));
-        sB.stop(pEnd + (last && !looping ? tail : 0.02));
-        nodes.push(sB);
-      }
-    }
+  const sA = AC.createBufferSource(), gA = AC.createGain();
+  sA.buffer = A; sA.connect(gA); gA.connect(eqA.input);
+  gA.gain.setValueAtTime(1, t0);
+  gA.gain.setValueCurveAtTime(ridesOut ? fadeToFloor : fadeCurves.out, tMix, blend);
+  if (ridesOut) {
+    gA.gain.setValueAtTime(VOCAL_FLOOR, tEnd);
+    gA.gain.linearRampToValueAtTime(0.0001, tEnd + vTail);
   }
+  sA.start(t0, Math.max(0, cueOut - lead));
+  sA.stop(tEnd + vTail + 0.05);
+  nodes.push(sA);
 
-  const runEnd = t0 + passes * loopLen + (looping ? 0 : 0.1);
+  const sB = AC.createBufferSource(), gB = AC.createGain();
+  sB.buffer = B; sB.playbackRate.value = rate;
+  sB.connect(gB); gB.connect(eqB.input);
+  gB.gain.setValueAtTime(0, t0);
+  gB.gain.setValueCurveAtTime(fadeCurves.inn, tMix, blend);
+  sB.start(tMix, cueIn);
+  sB.stop(tEnd + tail);
+  nodes.push(sB);
+
+  const runEnd = tEnd + Math.max(tail, vTail);
 
   if (ridesOut) setBand(eqA, 'high', true, tEnd);
   card.__eq = { eqA, eqB, doSwap, tMix, blend, bars: b.bars };
@@ -1183,10 +1123,9 @@ async function playBlend(playing, b, card){
   const tick = () => {
     const now = AC.currentTime;
     if (now > runEnd) { stopBlend(); return; }
-    const inPass = (now - t0) % loopLen;
-    if (ph) ph.style.left = (100 * (PRE - mixOff + inPass) / SPAN) + '%';
+    if (ph) ph.style.left = (100 * (PRE - lead + (now - t0)) / SPAN) + '%';
     if (bar) {
-      const p = Math.min(1, Math.max(0, (inPass - mixOff) / blend));
+      const p = Math.min(1, Math.max(0, (now - tMix) / blend));
       bar.style.width = (p * 100) + '%';
     }
     PLAYING.raf = requestAnimationFrame(tick);
@@ -1194,7 +1133,6 @@ async function playBlend(playing, b, card){
   PLAYING = { nodes, raf: 0, card, ends: runEnd };
   PLAYING.raf = requestAnimationFrame(tick);
 }
-
 
 /* Shown once per browser. localStorage can throw outright in a private window,
    so a failure to remember simply means they see it again -- never a crash. */
@@ -1230,7 +1168,7 @@ async function open_(id, push){
   document.getElementById('main').scrollTop = 0;
   el.querySelectorAll('.blend .head').forEach((hd, i) => {
     hd.onclick = ev => {
-      if (ev.target.closest('.play') || ev.target.closest('.loop')) return;
+      if (ev.target.closest('.play')) return;      // the play button is not a toggle
       hd.parentElement.classList.toggle('open');
     };
     const card0 = hd.parentElement;
@@ -1249,7 +1187,6 @@ async function open_(id, push){
     };
     if (chk) chk.onchange = () => { syncSwapUI(); };
     bindSwapLine(card0, p, d.blends[i]);
-    bindLoop(card0, p, d.blends[i]);
     if (chk) syncSwapUI();
 
     hd.parentElement.querySelectorAll('.kill').forEach(k => k.onclick = ev => {
@@ -1263,16 +1200,33 @@ async function open_(id, push){
           setBand(chain, k.dataset.band, k.classList.contains('on'));
       }
     });
-    const lp = hd.querySelector('.loop');
-    if (lp) lp.onclick = ev => {
-      ev.stopPropagation();
-      lp.classList.toggle('on');
-      // Restart so the change is heard now rather than on the next press.
-      if (PLAYING && PLAYING.card === hd.parentElement) {
-        stopBlend();
-        playBlend(p, d.blends[i], hd.parentElement);
-      }
+    /* Effects are live: nudging a filter mid-blend should be heard now, and
+       they persist as settings when nothing is playing. */
+    const label = r => {
+      const el = card0.querySelector(`.fxval[data-for="${r.dataset.deck}"]`);
+      const v = +r.value;
+      el.classList.toggle('on', v !== 0);
+      el.textContent = v === 0 ? 'filter off'
+        : v < 0 ? `low-pass ${-v}%` : `high-pass ${v}%`;
     };
+    card0.querySelectorAll('.filt').forEach(r => {
+      label(r);
+      r.oninput = ev => {
+        ev.stopPropagation(); label(r);
+        if (card0.__fx) card0.__fx.applyFx();
+      };
+      r.onclick = ev => ev.stopPropagation();
+      r.ondblclick = ev => { ev.stopPropagation(); r.value = 0; label(r);
+        if (card0.__fx) card0.__fx.applyFx(); };
+    });
+    card0.querySelectorAll('.echip').forEach(c => c.onclick = ev => {
+      ev.stopPropagation();
+      const off = +c.dataset.echo === 0;
+      card0.querySelectorAll('.echip').forEach(x => x.classList.remove('on'));
+      if (!off) c.classList.add('on');
+      if (card0.__fx) card0.__fx.applyFx();
+    });
+
     const btn = hd.querySelector('.play');
     if (btn) btn.onclick = ev => {
       ev.stopPropagation();
