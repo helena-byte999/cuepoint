@@ -93,34 +93,60 @@
   [hidden] { display:none !important; }
 
   /* ---- first run ---------------------------------------------------------
-     Most people will not read a README. Four sentences, once, then out of the
-     way -- reachable again from the ? in the header. */
-  .scrim { position:fixed; inset:0; background:rgba(0,0,0,.78);
-    backdrop-filter:blur(6px); z-index:50; display:none;
-    align-items:center; justify-content:center; padding:24px; }
+     One centred panel split by a vertical rule: the claim on the left with a
+     miniature of the thing itself, the four steps on the right. Most people
+     will not read a README, so this is the whole idea in four sentences. */
+  .scrim { position:fixed; inset:0; background:rgba(0,0,0,.82);
+    backdrop-filter:blur(7px); z-index:50; display:none;
+    align-items:center; justify-content:center; padding:24px; overflow-y:auto; }
   .scrim.on { display:flex; }
-  .intro { max-width:560px; width:100%; background:var(--panel);
-    border:1px solid var(--line2); border-radius:24px; padding:30px 32px 26px;
-    box-shadow:0 30px 80px rgba(0,0,0,.6); }
-  .intro h2 { font-family:var(--display); font-size:clamp(26px,4vw,36px);
-    line-height:1.04; margin:14px 0 10px; letter-spacing:.006em; }
-  .intro .lede { color:var(--dim); font-size:13.5px; line-height:1.6;
-    margin-bottom:22px; }
-  .steps { display:flex; flex-direction:column; gap:14px; margin-bottom:24px; }
-  .step { display:grid; grid-template-columns:26px 1fr; gap:13px;
+  .intro { max-width:880px; width:100%; background:var(--card);
+    border:1px solid var(--line2); border-radius:26px; overflow:hidden;
+    box-shadow:0 34px 90px rgba(0,0,0,.7);
+    display:grid; grid-template-columns:1fr 1px 1fr; }
+  .intro .rule { background:var(--line); }
+  .intro .side { padding:34px 34px 30px; }
+  .intro h2 { font-family:var(--display); font-size:clamp(27px,3.4vw,40px);
+    line-height:1.02; margin:13px 0 14px; letter-spacing:.006em; }
+  .intro h2 em { font-style:normal; color:var(--lime); }
+  .intro .lede { color:var(--dim); font-size:13px; line-height:1.62; }
+
+  /* the product's own picture: two records on one axis */
+  .demo { margin-top:22px; }
+  .demo .lane2 { height:22px; border-radius:7px; background:#000; overflow:hidden;
+    position:relative; margin-bottom:5px; }
+  .demo .lane2 i { position:absolute; top:0; height:100%; }
+  .demo .wrap { position:relative; padding-top:4px; }
+  .demo .m { position:absolute; top:-2px; bottom:0; width:2px; z-index:3; }
+  .demo .m.cue { background:var(--lime); box-shadow:0 0 10px rgba(201,246,94,.8); }
+  .demo .m.sw  { background:var(--lav);  box-shadow:0 0 10px rgba(221,184,250,.8); }
+  .demo .key { display:flex; gap:14px; margin-top:11px; font-size:10px;
+    font-weight:700; letter-spacing:.1em; text-transform:uppercase;
+    color:var(--dim2); }
+  .demo .key b { font-weight:700; }
+  .demo .key .k1 { color:var(--lime); }
+  .demo .key .k2 { color:var(--lav); }
+
+  .steps { display:flex; flex-direction:column; gap:15px; }
+  .step { display:grid; grid-template-columns:25px 1fr; gap:13px;
     align-items:start; }
-  .step b { width:26px; height:26px; border-radius:50%; background:var(--lime);
-    color:#000; display:grid; place-items:center; font:700 12px var(--ui); }
-  .step div { font-size:13px; line-height:1.55; color:var(--ink); }
-  .step div span { color:var(--dim); }
-  .intro .go { width:100%; padding:13px; border-radius:999px; border:0;
-    background:var(--lime); color:#000; font:700 13px var(--ui);
-    letter-spacing:.04em; cursor:pointer; }
+  .step b { width:25px; height:25px; border-radius:50%; background:var(--lime);
+    color:#000; display:grid; place-items:center; font:700 11.5px var(--ui); }
+  .step p { margin:0; font-size:13px; line-height:1.5; color:var(--ink); }
+  .step p span { color:var(--dim); }
+  .intro .go { width:100%; margin-top:24px; padding:13px; border-radius:999px;
+    border:0; background:var(--lime); color:#000; font:700 13px var(--ui);
+    letter-spacing:.03em; cursor:pointer; }
   .intro .go:hover { background:#d7ff72; }
   .help { width:33px; height:33px; border-radius:50%; background:var(--panel2);
     border:1px solid var(--line); color:var(--dim); font:700 13px var(--ui);
     cursor:pointer; flex:0 0 auto; }
   .help:hover { color:var(--ink); border-color:var(--line2); }
+  @media (max-width:720px) {
+    .intro { grid-template-columns:1fr; }
+    .intro .rule { height:1px; width:auto; }
+    .intro .side { padding:26px 24px; }
+  }
 
   /* ---- shell ----------------------------------------------------------- */
   main { display:grid; grid-template-columns:344px 1fr; gap:12px;
@@ -375,25 +401,43 @@
 </header>
 <div class="scrim" id="scrim">
   <div class="intro">
-    <div class="eyebrow">Welcome</div>
-    <h2>Not just what to play.<br>Where to bring it in.</h2>
-    <p class="lede">Two records can share a tempo and a key and still wreck the
-      mix — the kicks land on different sixteenths, or both singers arrive at
-      once. Cuepoint listens to the parts that actually decide it.</p>
-    <div class="steps">
-      <div class="step"><b>1</b><div>Pick the record that's playing.
-        <span>It's the list on the left — search it, or filter by BPM, key and genre.</span></div></div>
-      <div class="step"><b>2</b><div>Read the score.
-        <span>Every track in your crate is rated against it on seven things, not two.
-        Open a card to see which one is holding it back.</span></div></div>
-      <div class="step"><b>3</b><div>Take the mix point.
-        <span>Each result tells you where to leave the outgoing record, where to
-        come in on the new one, and how many bars to run them together.</span></div></div>
-      <div class="step"><b>4</b><div>Hear it before you play it.
-        <span>Press play on any result. Drag the lavender line to move where the
-        bass changes hands, and use the EQ kills if something clashes.</span></div></div>
+    <div class="side">
+      <div class="eyebrow">Welcome</div>
+      <h2>Not just what to play.<br><em>Where to bring it in.</em></h2>
+      <p class="lede">Two records can share a tempo and a key and still wreck the
+        mix — the kicks land on different sixteenths, or both singers arrive at
+        once. Cuepoint listens to the parts that actually decide it, then plays
+        the transition back so you can check it by ear.</p>
+      <div class="demo">
+        <div class="wrap">
+          <div class="lane2"><i style="left:0%;width:34%;background:var(--verse)"></i><i style="left:34%;width:26%;background:var(--breakdown)"></i><i style="left:60%;width:40%;background:var(--outro)"></i></div>
+          <div class="lane2"><i style="left:30%;width:22%;background:var(--intro)"></i><i style="left:52%;width:26%;background:var(--build)"></i><i style="left:78%;width:22%;background:var(--peak)"></i></div>
+          <div class="m cue" style="left:30%"></div>
+          <div class="m sw" style="left:44%"></div>
+        </div>
+        <div class="key">
+          <span class="k1"><b>│</b> mix point</span>
+          <span class="k2"><b>│</b> bass swap</span>
+        </div>
+      </div>
+      <button class="go" id="introgo" type="button">Start mixing</button>
     </div>
-    <button class="go" id="introgo" type="button">Start mixing</button>
+    <div class="rule"></div>
+    <div class="side">
+      <div class="steps">
+        <div class="step"><b>1</b><p>Pick the record that's playing.
+          <span>The list on the left — search it, or filter by BPM, key and genre.</span></p></div>
+        <div class="step"><b>2</b><p>Read the score.
+          <span>Every track in your crate is rated against it on seven things,
+          not two. Open a card to see which one is holding it back.</span></p></div>
+        <div class="step"><b>3</b><p>Take the mix point.
+          <span>Where to leave the outgoing record, where to come in on the new
+          one, and how many bars to run them together.</span></p></div>
+        <div class="step"><b>4</b><p>Hear it before you play it.
+          <span>Press play on any result. Drag the lavender line to move where
+          the bass changes hands, and cut a band if something clashes.</span></p></div>
+      </div>
+    </div>
   </div>
 </div>
 <main>
