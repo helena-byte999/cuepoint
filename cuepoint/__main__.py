@@ -250,13 +250,14 @@ def cmd_listen(args) -> None:
 
 def _check_ffmpeg() -> tuple[bool, str]:
     from . import audio
-    exe = shutil.which("ffmpeg") or audio.FFMPEG
+    exe = audio.FFMPEG
     if not (exe and Path(exe).exists()):
-        return False, "not found on PATH"
+        return False, "not found (and the bundled build failed to load)"
+    where = "system" if shutil.which("ffmpeg") == exe else "bundled"
     try:
         out = subprocess.run([exe, "-version"], capture_output=True, text=True,
                              timeout=15).stdout.splitlines()[0]
-        return True, out[:60]
+        return True, f"[{where}] {out[:48]}"
     except Exception as exc:                                 # noqa: BLE001
         return False, f"found but would not run ({exc})"
 

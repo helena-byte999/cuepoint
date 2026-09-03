@@ -17,7 +17,25 @@ import numpy as np
 
 SAMPLE_RATE = 22050
 
-FFMPEG = shutil.which("ffmpeg") or str(Path.home() / "bin/ffmpeg")
+def _find_ffmpeg() -> str:
+    """Locate ffmpeg: the system one first, then the bundled fallback.
+
+    A DJ should not have to install a binary by hand before the tool runs, so
+    imageio-ffmpeg is a dependency and supplies a working build everywhere.
+    A system ffmpeg still wins when it exists -- it is usually newer and
+    carries wider codec coverage than any bundled build.
+    """
+    exe = shutil.which("ffmpeg")
+    if exe:
+        return exe
+    try:
+        import imageio_ffmpeg
+        return imageio_ffmpeg.get_ffmpeg_exe()
+    except Exception:                                        # noqa: BLE001
+        return str(Path.home() / "bin/ffmpeg")
+
+
+FFMPEG = _find_ffmpeg()
 
 
 class DecodeError(RuntimeError):
