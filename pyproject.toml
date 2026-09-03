@@ -27,6 +27,11 @@ dependencies = [
     "scipy>=1.7",
 ]
 
+[project.urls]
+Homepage = "https://github.com/helena-byte999/cuepoint"
+Source = "https://github.com/helena-byte999/cuepoint"
+Issues = "https://github.com/helena-byte999/cuepoint/issues"
+
 [project.scripts]
 cuepoint = "cuepoint.__main__:main"
 
