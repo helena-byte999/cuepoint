@@ -100,13 +100,15 @@
     backdrop-filter:blur(7px); z-index:50; display:none;
     align-items:center; justify-content:center; padding:24px; overflow-y:auto; }
   .scrim.on { display:flex; }
-  .intro { max-width:880px; width:100%; background:var(--card);
-    border:1px solid var(--line2); border-radius:26px; overflow:hidden;
-    box-shadow:0 34px 90px rgba(0,0,0,.7);
-    display:grid; grid-template-columns:1fr 1px 1fr; }
-  .intro .rule { background:var(--line); }
-  .intro .side { padding:32px 32px 28px; }
-  .intro { max-height:88vh; overflow-y:auto; }
+  /* Two cards rather than one panel with a seam: the claim and the diagram on
+     one, how to use it on the other. */
+  .intro { max-width:900px; width:100%; display:grid;
+    grid-template-columns:1fr 1fr; gap:14px; align-items:start; }
+  .intro .side { background:var(--card); border:1px solid var(--line2);
+    border-radius:24px; padding:30px 30px 26px;
+    box-shadow:0 26px 70px rgba(0,0,0,.6); }
+
+  .intro h2.h2s { font-size:clamp(22px,2.6vw,30px); margin:12px 0 18px; }
   .intro h2 { font-family:var(--display); font-size:clamp(27px,3.4vw,40px);
     line-height:1.02; margin:13px 0 14px; letter-spacing:.006em; }
   .intro h2 em { font-style:normal; color:var(--lime); }
@@ -176,8 +178,7 @@
   .help:hover { color:var(--ink); border-color:var(--line2); }
   @media (max-width:720px) {
     .intro { grid-template-columns:1fr; }
-    .intro .rule { height:1px; width:auto; }
-    .intro .side { padding:26px 24px; }
+    .intro .side { padding:24px 22px; }
   }
 
   /* ---- shell ----------------------------------------------------------- */
@@ -585,9 +586,10 @@
       <button class="go" id="introgo" type="button">Start mixing</button>
     </div>
 
-    <div class="rule"></div>
 
     <div class="side">
+      <div class="eyebrow">How to use it</div>
+      <h2 class="h2s">Six steps.</h2>
       <div class="steps">
         <div class="step"><b>1</b><p>Pick the record that's playing.
           <span>The list on the left. Search it, or filter to what's actually
