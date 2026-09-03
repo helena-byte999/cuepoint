@@ -320,6 +320,31 @@
   .echip:hover:not(.on) { color:var(--ink); border-color:var(--line2); }
   .echip.on { background:var(--bridge); border-color:var(--bridge); color:#000; }
 
+  /* ---- teaching --------------------------------------------------------
+     In beginner mode the jargon explains itself: terms carry a definition on
+     hover, and each section of a card says in one line what it is for. All of
+     it disappears in expert mode. */
+  .term { border-bottom:1px dotted var(--dim2); cursor:help; position:relative; }
+  .term::after { content:attr(data-tip); position:absolute; left:0; top:calc(100% + 7px);
+    width:250px; padding:9px 11px; border-radius:11px; background:#17171b;
+    border:1px solid var(--line2); color:var(--ink); font:400 11.5px/1.5 var(--ui);
+    letter-spacing:0; text-transform:none; box-shadow:0 12px 32px rgba(0,0,0,.65);
+    opacity:0; visibility:hidden; transition:opacity .13s; z-index:20;
+    pointer-events:none; }
+  .term:hover::after { opacity:1; visibility:visible; }
+  .hint { display:none; font-size:11.5px; line-height:1.5; color:var(--dim);
+    margin:-4px 0 12px; }
+  body.beginner .hint { display:block; }
+
+  /* the glossary on the welcome panel */
+  .gloss { margin-top:20px; padding-top:16px; border-top:1px solid var(--line); }
+  .gloss h3 { font:700 10px var(--ui); letter-spacing:.18em; text-transform:uppercase;
+    color:var(--dim2); margin:0 0 11px; }
+  .gitem { display:grid; grid-template-columns:96px 1fr; gap:11px; margin-bottom:7px;
+    font-size:11.5px; line-height:1.5; }
+  .gitem b { color:var(--lime); font-weight:700; }
+  .gitem span { color:var(--dim); }
+
   /* ---- beginner mode -----------------------------------------------------
      The scorer already knows which blends need hands and which do not; it just
      never said so. This turns the seven numbers into a sentence, labels how
@@ -532,6 +557,31 @@
           header.</span></div>
       </div>
 
+      <div class="gloss">
+        <h3>The words, if they're new</h3>
+        <div class="gitem"><b>BPM</b><span>Beats per minute. Two records have to
+          be at the same one to play together — the pitch fader closes the gap.</span></div>
+        <div class="gitem"><b>Key · 8B</b><span>Camelot notation: a number 1–12
+          and a letter. Neighbours on that wheel sound good together, distant
+          ones clash.</span></div>
+        <div class="gitem"><b>Phrase</b><span>A section of a track — intro,
+          build, peak, breakdown, outro. Mixing between them at the wrong point
+          is what makes a transition collapse.</span></div>
+        <div class="gitem"><b>Bar</b><span>Four beats. Phrases are almost always
+          a multiple of 8 or 16 bars, and DJs count in them.</span></div>
+        <div class="gitem"><b>Mix point</b><span>The bar where the new record
+          starts playing over the old one.</span></div>
+        <div class="gitem"><b>Bass swap</b><span>Handing the low end over. Two
+          kick drums at once turns to mud, so one deck stays cut until the
+          other gives it up.</span></div>
+        <div class="gitem"><b>EQ</b><span>Cutting a band so the records stop
+          competing. Low is kick and bass, mid is vocals, high is hats.</span></div>
+        <div class="gitem"><b>Filter</b><span>Sweeping the top or the bottom of
+          a deck out of the way.</span></div>
+        <p class="lede" style="margin-top:12px">In Beginner mode these appear
+          throughout the app — anything with a dotted underline explains itself
+          when you hover it.</p>
+      </div>
       <button class="go" id="introgo" type="button">Start mixing</button>
     </div>
 
@@ -640,6 +690,7 @@ function aligned(playing, b){
     return `<div class="lane">${segs}<div class="lab">${label}</div></div>`;
   };
   return `<div class="align"><div class="cap">Both records on one axis — ${b.bars} bars running together</div>
+    <p class="hint">Each block is a ${T("phrase","phrase")} — a section of the track, coloured by what it does. The lime line is the ${T("mixpoint","mix point")}; the lavender one is the ${T("swap","bass swap")}, and you can drag it.</p>
     <div class="lanes">${BEGINNER ? barNumbers(playing, b) : ''}
       ${lane(playing.phrases, b.cue_out_ms, 'out · ' + clock(b.cue_out_ms))}
       ${lane(b.track.phrases, b.cue_in_ms, 'in · ' + clock(b.cue_in_ms))}
@@ -673,6 +724,25 @@ function faderMove(b){
 const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
 const listOf = a => a.length <= 1 ? (a[0] || '')
   : a.slice(0, -1).join(', ') + ' and ' + a[a.length - 1];
+
+/* The words a DJ uses, defined where they appear. Only rendered in beginner
+   mode -- an expert does not need "bar" explained every time. */
+const TERMS = {
+  bpm: 'Beats per minute — how fast the record runs. Two records have to be at the same BPM to play together.',
+  key: 'The musical key, written in Camelot notation: a number 1–12 and a letter A or B. Keys next to each other on that wheel sound good together; distant ones clash.',
+  phrase: 'A section of a track — intro, build, peak, breakdown, outro. Records are built in phrases, and mixing between them at the wrong point is what makes a transition collapse.',
+  bar: 'Four beats. DJs count in bars, and phrases are almost always a multiple of 8 or 16 of them.',
+  mixpoint: 'The bar where the new record starts playing over the old one.',
+  crossfade: 'Bringing one record up while taking the other down, so the change happens gradually instead of as a cut.',
+  swap: 'Handing the bass from one record to the other. Two kick drums at once turns to mud, so one deck has its low end cut until the other gives it up.',
+  eq: 'Cutting a band of frequencies on one deck so the two records stop competing for the same space. Low is the kick and bass, mid is vocals and most instruments, high is hats and air.',
+  filter: 'Sweeping everything above or below a point out of the way. Turning it down removes the top; turning it up removes the bottom.',
+  echo: 'Repeating the sound in time with the bar, each repeat quieter than the last. Used to carry a record out rather than stopping it dead.',
+  pitch: 'The tempo control. A percentage: negative slows the record down, positive speeds it up.',
+  halftime: 'Mixing a record against another running at double or half its tempo. It works, but it is a harder move to land.'
+};
+const T = (k, text) => BEGINNER
+  ? `<span class="term" data-tip="${esc(TERMS[k])}">${text}</span>` : text;
 
 /* How much work a transition needs, in the scorer's own numbers. */
 function difficulty(b){
@@ -760,11 +830,13 @@ function eqBlock(b){
     `<div class="eqrow"><span class="eqlbl">${label}</span>` +
     band(deck,'low') + band(deck,'mid') + band(deck,'high') + `</div>`;
   return `<div class="eq"><div class="cap">EQ — cut a band on either deck</div>
+    <p class="hint">${T("eq","Cutting a band")} stops the two records fighting over the same frequencies. Low is kick and bass, mid is vocals, high is hats.</p>
     ${row('out','out')}${row('in','in')}
     <label class="swap"><input type="checkbox" class="bassswap" checked>
       swap the bass at</label>
     <div class="fx">
       <div class="cap">Effects</div>
+      <p class="hint">The ${T("filter","filter")} sweeps the top or the bottom out of a deck — drag left to lose the highs, right to lose the lows, double-click to reset. The ${T("echo","echo")} repeats in time with the bar.</p>
       <div class="fxrow"><span class="eqlbl">out</span>
         <input type="range" class="filt" data-deck="out" min="-100" max="100" value="0">
         <span class="fxval" data-for="out">filter off</span></div>
@@ -785,17 +857,17 @@ function eqBlock(b){
 }
 
 function blendCard(playing, b, i){
-  const alt = b.ratio !== 1 ? `<span class="tag alt">${b.ratio === 2 ? 'half-time' : 'double-time'}</span>` : '';
+  const alt = b.ratio !== 1 ? `<span class="tag alt">${T("halftime", b.ratio === 2 ? 'half-time' : 'double-time')}</span>` : '';
   const note = b.weakest_value < .6 ? `<div class="note"><i>!</i>Watch the ${b.weakest} — ${b.weakest_value.toFixed(2)}</div>` : '';
   const hot = b.score >= .85 ? ' style="color:var(--lime)"' : '';
   return `<div class="blend"><div class="head">
       <div><div class="score"${hot}>${b.score.toFixed(2)}</div><div class="rank">#${i+1}</div></div>
       <div><div class="title">${esc(b.track.title)}</div>
         <div class="cues">out <b>${clock(b.cue_out_ms)}</b> (${b.from_role})
-          → in <b>${clock(b.cue_in_ms)}</b> (${b.to_role}) · <b>${b.bars}</b> bars
-          · pitch <b>${faderMove(b)}</b></div></div>
-      <div class="right"><div class="bpm">${b.track.tempo}<em>BPM</em></div>
-        <div class="keyline">${b.track.key} · ${b.track.camelot}${alt}</div>
+          → in <b>${clock(b.cue_in_ms)}</b> (${b.to_role}) · <b>${b.bars}</b> ${T("bar","bars")}
+          · ${T("pitch","pitch")} <b>${faderMove(b)}</b></div></div>
+      <div class="right"><div class="bpm">${b.track.tempo}<em>${T("bpm","BPM")}</em></div>
+        <div class="keyline">${T("key", b.track.key + " · " + b.track.camelot)}${alt}</div>
         ${BEGINNER ? `<div style="margin-top:6px"><span class="diff ${difficulty(b)[0]}">${difficulty(b)[1]}</span></div>` : ''}</div>
       <button class="play" type="button" aria-label="Play this transition">${PLAY}</button>
       <button class="plus" type="button" aria-label="Show why this scored what it did">${PLUS}</button>
