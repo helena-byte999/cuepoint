@@ -266,6 +266,41 @@
   .xf i { display:block; height:100%; width:0;
     background:linear-gradient(90deg, var(--lav), var(--lime)); }
 
+  /* ---- beginner mode -----------------------------------------------------
+     The scorer already knows which blends need hands and which do not; it just
+     never said so. This turns the seven numbers into a sentence, labels how
+     hard each transition is, and counts the bars out on the grid -- because
+     counting bars is the skill underneath all of it. */
+  .diff { display:inline-flex; align-items:center; gap:6px; padding:3px 10px;
+    border-radius:999px; font:700 9.5px var(--ui); letter-spacing:.1em;
+    text-transform:uppercase; white-space:nowrap; }
+  .diff::before { content:''; width:6px; height:6px; border-radius:50%;
+    background:currentColor; }
+  .diff.clean    { background:rgba(201,246,94,.14); color:var(--lime);
+                   border:1px solid rgba(201,246,94,.35); }
+  .diff.eq       { background:rgba(255,162,61,.14); color:var(--amber);
+                   border:1px solid rgba(255,162,61,.35); }
+  .diff.tricky   { background:rgba(255,59,92,.13); color:var(--red);
+                   border:1px solid rgba(255,59,92,.34); }
+  .diff.advanced { background:rgba(221,184,250,.14); color:var(--lav);
+                   border:1px solid rgba(221,184,250,.35); }
+
+  .plain { margin:0 0 4px; padding:14px 16px; border-radius:14px;
+    background:var(--panel2); border:1px solid var(--line);
+    font-size:13.5px; line-height:1.6; color:var(--ink); }
+  .plain b { color:var(--lime); font-weight:700; }
+  .plain .watch { color:var(--amber); }
+  .plain .do { display:block; margin-top:9px; color:var(--dim); }
+  .plain .do b { color:var(--lav); }
+
+  .barnums { position:absolute; left:0; right:0; top:-17px; height:14px;
+    pointer-events:none; }
+  .barnums i { position:absolute; top:0; font:700 8.5px var(--ui);
+    color:var(--dim2); transform:translateX(-50%); font-style:normal; }
+  .barnums u { position:absolute; top:12px; width:1px; height:5px;
+    background:var(--line2); text-decoration:none; }
+  .lanes { padding-top:34px; }
+
   /* ---- a blend --------------------------------------------------------- */
   .blend { border:1px solid var(--line); border-radius:18px; margin-bottom:10px;
     background:var(--panel); overflow:hidden;
@@ -396,6 +431,8 @@
   </button>
   <div class="hpills">
     <span class="pill" id="meta">loading…</span>
+    <button class="pill" id="begbtn" type="button"
+      title="Plain-English explanations, difficulty labels and bar counts">beginner</button>
     <button class="help" id="help" type="button" title="How this works">?</button>
   </div>
 </header>
@@ -511,7 +548,7 @@ function aligned(playing, b){
     return `<div class="lane">${segs}<div class="lab">${label}</div></div>`;
   };
   return `<div class="align"><div class="cap">Both records on one axis — ${b.bars} bars running together</div>
-    <div class="lanes">
+    <div class="lanes">${BEGINNER ? barNumbers(playing, b) : ''}
       ${lane(playing.phrases, b.cue_out_ms, 'out · ' + clock(b.cue_out_ms))}
       ${lane(b.track.phrases, b.cue_in_ms, 'in · ' + clock(b.cue_in_ms))}
       <div class="mark" style="left:${px(pre)}%"></div>
@@ -532,6 +569,85 @@ function parts(b){
 
 
 /* What actually clashes, in the scorer's own terms, and which band fixes it. */
+
+
+/* `stretch` is how much faster the incoming record already is than the
+   outgoing one. The pitch fader has to move the other way to close that gap,
+   so the number a DJ acts on is its negation. Reporting the raw figure sends
+   a beginner the wrong direction, which is worse than reporting nothing. */
+function faderMove(b){
+  const v = -b.stretch_pct;
+  if (Math.abs(v) < 0.05) return '0.0%';
+  return (v > 0 ? '+' : '') + v.toFixed(1) + '%';
+}
+const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
+const listOf = a => a.length <= 1 ? (a[0] || '')
+  : a.slice(0, -1).join(', ') + ' and ' + a[a.length - 1];
+
+/* How much work a transition needs, in the scorer's own numbers. */
+function difficulty(b){
+  const lo = Math.min.apply(null, Object.values(b.parts));
+  if (b.ratio !== 1)                       return ['advanced', 'advanced'];
+  if (b.score >= 0.85 && lo >= 0.65)       return ['clean',    'clean'];
+  if (b.parts.sub < 0.6 || b.parts.vocal < 0.6) return ['eq',  'needs EQ'];
+  return ['tricky', 'tricky'];
+}
+
+/* The same seven components, said out loud. A beginner cannot read a bar
+   chart of "sub 0.42"; they can read "the two kicks will fight". What agrees
+   goes in one sentence, what needs hands in another -- stacking them into one
+   run-on with three "and"s reads like a machine. */
+function plainEnglish(b){
+  const p = b.parts, good = [], warn = [];
+
+  good.push(Math.abs(b.stretch_pct) < 0.05
+    ? 'both records are already at the same tempo'
+    : `the incoming record needs <b>${faderMove(b)}</b> on the pitch fader`);
+  if (p.groove   >= 0.75) good.push('the kicks land in the same part of the bar');
+  if (p.vocal    >= 0.90) good.push('only one of them is singing here');
+  if (p.harmonic >= 0.80) good.push('the two keys agree');
+  if (p.energy   >= 0.85) good.push('the level holds');
+
+  if (p.groove   < 0.55) warn.push('the kicks land on different sixteenths, so keep the lows off the incoming');
+  if (p.vocal    < 0.60) warn.push('both records are singing, so cut the mids on one deck');
+  if (p.sub      < 0.60) warn.push('the two kick fundamentals will beat, so swap the bass early');
+  if (p.harmonic < 0.50) warn.push('the two keys pull against each other, so keep the mids down');
+
+  let s = cap(listOf(good)) + '.';
+  if (warn.length) s += ` <span class="watch">Watch out — ${listOf(warn)}.</span>`;
+  const act = `<span class="do">Bring it in at <b>${clock(b.cue_in_ms)}</b>, on the `
+    + `${b.to_role}, leaving the current record at <b>${clock(b.cue_out_ms)}</b>, `
+    + `and run them together for <b>${b.bars} bars</b>.</span>`;
+  return `<div class="plain">${s}${act}</div>`;
+}
+
+/* Bars counted out across the blend, so the number in the text has a picture. */
+function barNumbers(playing, b){
+  const barMs = 4 * 60000 / playing.tempo, pre = 40000, span = 130000;
+  let out = '';
+  for (let i = 0; i <= b.bars; i++) {
+    const pct = 100 * (pre + i * barMs) / span;
+    if (pct > 99) break;
+    out += `<u style="left:${pct}%"></u>`;
+    if (i === 0 || i === b.bars || b.bars <= 8 || i % 2 === 0)
+      out += `<i style="left:${pct}%">${i}</i>`;
+  }
+  return `<div class="barnums">${out}</div>`;
+}
+
+let BEGINNER = (() => {
+  try { const v = localStorage.getItem('cuepoint.beginner'); return v === null ? true : v === '1'; }
+  catch (e) { return true; }
+})();
+function setBeginner(on){
+  BEGINNER = on;
+  try { localStorage.setItem('cuepoint.beginner', on ? '1' : '0'); } catch (e) {}
+  document.body.classList.toggle('beginner', on);
+  const b = document.getElementById('begbtn');
+  if (b) { b.classList.toggle('lime', on); b.textContent = on ? 'beginner' : 'expert'; }
+  if (current) open_(current, false);
+}
+
 function clashNote(b){
   const n = [];
   if (b.parts.sub   < 0.60) n.push('the two kick fundamentals beat against each other — swap the bass');
@@ -567,12 +683,13 @@ function blendCard(playing, b, i){
       <div><div class="title">${esc(b.track.title)}</div>
         <div class="cues">out <b>${clock(b.cue_out_ms)}</b> (${b.from_role})
           → in <b>${clock(b.cue_in_ms)}</b> (${b.to_role}) · <b>${b.bars}</b> bars
-          · pitch <b>${b.stretch_pct > 0 ? '+' : ''}${b.stretch_pct}%</b></div></div>
+          · pitch <b>${faderMove(b)}</b></div></div>
       <div class="right"><div class="bpm">${b.track.tempo}<em>BPM</em></div>
-        <div class="keyline">${b.track.key} · ${b.track.camelot}${alt}</div></div>
+        <div class="keyline">${b.track.key} · ${b.track.camelot}${alt}</div>
+        ${BEGINNER ? `<div style="margin-top:6px"><span class="diff ${difficulty(b)[0]}">${difficulty(b)[1]}</span></div>` : ''}</div>
       <button class="play" type="button" aria-label="Play this transition">${PLAY}</button>
       <button class="plus" type="button" aria-label="Show why this scored what it did">${PLUS}</button>
-    </div><div class="body">${parts(b)}${aligned(playing, b)}${eqBlock(b)}${note}</div></div>`;
+    </div><div class="body">${BEGINNER ? plainEnglish(b) : parts(b)}${aligned(playing, b)}${eqBlock(b)}${note}</div></div>`;
 }
 
 
@@ -997,6 +1114,8 @@ function initFilters(){
   document.getElementById('search').oninput = e => render(e.target.value);
   // Back to the top: drop the selected record from the URL and start clean,
   // which also tears down anything currently playing.
+  document.getElementById('begbtn').onclick = () => setBeginner(!BEGINNER);
+  setBeginner(BEGINNER);
   document.getElementById('help').onclick = showIntro;
   document.getElementById('introgo').onclick = hideIntro;
   document.getElementById('scrim').onclick = e => {
