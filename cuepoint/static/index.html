@@ -301,6 +301,7 @@
     font-size:13.5px; line-height:1.6; color:var(--ink); }
   .plain b { color:var(--lime); font-weight:700; }
   .plain .watch { color:var(--amber); }
+  .plain .ride { color:var(--lav); }
   .plain .do { display:block; margin-top:9px; color:var(--dim); }
   .plain .do b { color:var(--lav); }
 
@@ -612,7 +613,7 @@ function difficulty(b){
    chart of "sub 0.42"; they can read "the two kicks will fight". What agrees
    goes in one sentence, what needs hands in another -- stacking them into one
    run-on with three "and"s reads like a machine. */
-function plainEnglish(b){
+function plainEnglish(b, playing){
   const p = b.parts, good = [], warn = [];
 
   good.push(Math.abs(b.stretch_pct) < 0.05
@@ -630,6 +631,11 @@ function plainEnglish(b){
 
   let s = cap(listOf(good)) + '.';
   if (warn.length) s += ` <span class="watch">Watch out — ${listOf(warn)}.</span>`;
+  const ph = ((playing && playing.phrases) || []).find(x => x.idx === b.from_idx);
+  if (ph && ph.vocal >= 0.28)
+    s += ' <span class="ride">Someone is still singing on the way out, so the '
+       + 'outgoing record is held under the new one for four bars to let the '
+       + 'line finish rather than cutting it.</span>';
   const act = `<span class="do">Bring it in at <b>${clock(b.cue_in_ms)}</b>, on the `
     + `${b.to_role}, leaving the current record at <b>${clock(b.cue_out_ms)}</b>, `
     + `and run them together for <b>${b.bars} bars</b>.</span>`;
@@ -704,7 +710,7 @@ function blendCard(playing, b, i){
         ${BEGINNER ? `<div style="margin-top:6px"><span class="diff ${difficulty(b)[0]}">${difficulty(b)[1]}</span></div>` : ''}</div>
       <button class="play" type="button" aria-label="Play this transition">${PLAY}</button>
       <button class="plus" type="button" aria-label="Show why this scored what it did">${PLUS}</button>
-    </div><div class="body">${BEGINNER ? plainEnglish(b) : parts(b)}${aligned(playing, b)}${eqBlock(b)}${note}</div></div>`;
+    </div><div class="body">${BEGINNER ? plainEnglish(b, playing) : parts(b)}${aligned(playing, b)}${eqBlock(b)}${note}</div></div>`;
 }
 
 
@@ -832,6 +838,10 @@ const BUFS = new Map();
 let PLAYING = null;                 // {nodes, raf, card, ends}
 
 const LEAD_BARS = 8, TAIL_BARS = 8, CURVE_N = 128;
+/* A phrase above this is genuinely being sung -- p75 across a real crate. */
+const VOCAL_HERE = 0.28;
+const VOCAL_TAIL_BARS = 4;      // how long to let the line resolve
+const VOCAL_FLOOR = 0.42;       // where the outgoing sits while it rides on top
 
 const fadeCurves = (() => {
   const out = new Float32Array(CURVE_N), inn = new Float32Array(CURVE_N);
@@ -841,6 +851,17 @@ const fadeCurves = (() => {
     inn[i] = Math.sin(x);
   }
   return { out, inn };
+})();
+
+/* Same shape, but landing on a floor instead of silence: the outgoing record
+   keeps singing over the new one rather than being cut off mid-line. */
+const fadeToFloor = (() => {
+  const a = new Float32Array(CURVE_N);
+  for (let i = 0; i < CURVE_N; i++) {
+    const x = (i / (CURVE_N - 1)) * Math.PI / 2;
+    a[i] = VOCAL_FLOOR + (1 - VOCAL_FLOOR) * Math.cos(x);
+  }
+  return a;
 })();
 
 async function bufFor(id){
@@ -894,6 +915,16 @@ async function playBlend(playing, b, card){
   const t0 = AC.currentTime + 0.25;                // a beat to get everything scheduled
   const tMix = t0 + lead, tEnd = tMix + blend;
 
+  /* If someone is still singing on the outgoing record when the crossfade
+     ends, cutting the fader is the wrong move -- the line stops mid-sentence.
+     Instead the outgoing rides on over the new beat, lows already handed over
+     and highs pulled back so it does not fight the incoming hats, and resolves
+     across the next few bars. */
+  const outPhrase = (playing.phrases || []).find(x => x.idx === b.from_idx);
+  const outVocal = outPhrase ? outPhrase.vocal : 0;
+  const ridesOut = outVocal >= VOCAL_HERE;
+  const vTail = ridesOut ? VOCAL_TAIL_BARS * barSec : 0;
+
   const eqA = eqChain(), eqB = eqChain();
   const killed = d => ({
     low:  !!card.querySelector(`.kill[data-deck="${d}"][data-band="low"]`).classList.contains('on'),
@@ -907,9 +938,13 @@ async function playBlend(playing, b, card){
   const sA = AC.createBufferSource(), gA = AC.createGain();
   sA.buffer = A; sA.connect(eqA.input); eqA.output.connect(gA).connect(AC.destination);
   gA.gain.setValueAtTime(1, t0);
-  gA.gain.setValueCurveAtTime(fadeCurves.out, tMix, blend);
+  gA.gain.setValueCurveAtTime(ridesOut ? fadeToFloor : fadeCurves.out, tMix, blend);
+  if (ridesOut) {
+    gA.gain.setValueAtTime(VOCAL_FLOOR, tEnd);
+    gA.gain.linearRampToValueAtTime(0.0001, tEnd + vTail);
+  }
   sA.start(t0, Math.max(0, cueOut - lead));
-  sA.stop(tEnd + 0.05);
+  sA.stop(tEnd + vTail + 0.05);
 
   const sB = AC.createBufferSource(), gB = AC.createGain();
   sB.buffer = B; sB.playbackRate.value = rate;
@@ -922,6 +957,7 @@ async function playBlend(playing, b, card){
   // Manual kills apply immediately; the bass swap overrides the low band and
   // happens halfway through the crossfade, which is where a DJ does it.
   ['low','mid','high'].forEach(bd => { setBand(eqA, bd, kA[bd], t0); setBand(eqB, bd, kB[bd], t0); });
+  if (ridesOut) setBand(eqA, 'high', true, tEnd);
   card.__eq = { eqA, eqB, doSwap, tMix, blend, bars: b.bars };
   if (doSwap) scheduleSwap(card.__eq, swapPos(card, b.bars));
 
@@ -936,7 +972,7 @@ async function playBlend(playing, b, card){
   const PRE = 40, SPAN = 130;
   const tick = () => {
     const now = AC.currentTime;
-    if (now > tEnd + tail) { stopBlend(); return; }
+    if (now > tEnd + Math.max(tail, vTail)) { stopBlend(); return; }
     if (ph) ph.style.left = (100 * (PRE - lead + (now - t0)) / SPAN) + '%';
     if (bar) {
       const p = Math.min(1, Math.max(0, (now - tMix) / blend));
@@ -944,7 +980,7 @@ async function playBlend(playing, b, card){
     }
     PLAYING.raf = requestAnimationFrame(tick);
   };
-  PLAYING = { nodes: [sA, sB], raf: 0, card, ends: tEnd + tail };
+  PLAYING = { nodes: [sA, sB], raf: 0, card, ends: tEnd + Math.max(tail, vTail) };
   PLAYING.raf = requestAnimationFrame(tick);
 }
 
