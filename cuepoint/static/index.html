@@ -338,7 +338,15 @@
   body.beginner .hint { display:block; }
 
   /* the glossary on the welcome panel */
-  .gloss { margin-top:20px; padding-top:16px; border-top:1px solid var(--line); }
+  .gloss { margin-top:4px; }
+  .intro.two { grid-template-columns:1fr; max-width:620px; }
+  .side.wide { width:100%; }
+  .go.ghost { background:none; border:1px solid var(--line2); color:var(--dim);
+    margin-top:9px; }
+  .go.ghost:hover { background:var(--panel2); color:var(--ink); }
+  .navrow { display:grid; grid-template-columns:auto 1fr; gap:10px;
+    align-items:center; margin-top:6px; }
+  .navrow .go { margin-top:14px; }
   .gloss h3 { font:700 10px var(--ui); letter-spacing:.18em; text-transform:uppercase;
     color:var(--dim2); margin:0 0 11px; }
   .gitem { display:grid; grid-template-columns:96px 1fr; gap:11px; margin-bottom:7px;
@@ -522,7 +530,7 @@
   </div>
 </header>
 <div class="scrim" id="scrim">
-  <div class="intro">
+  <div class="intro" id="p1">
     <div class="side">
       <div class="eyebrow">Welcome</div>
       <h2>Not just what to play.<br><em>Where to bring it in.</em></h2>
@@ -558,32 +566,8 @@
           header.</span></div>
       </div>
 
-      <div class="gloss">
-        <h3>The words, if they're new</h3>
-        <div class="gitem"><b>BPM</b><span>Beats per minute. Two records have to
-          be at the same one to play together — the pitch fader closes the gap.</span></div>
-        <div class="gitem"><b>Key · 8B</b><span>Camelot notation: a number 1–12
-          and a letter. Neighbours on that wheel sound good together, distant
-          ones clash.</span></div>
-        <div class="gitem"><b>Phrase</b><span>A section of a track — intro,
-          build, peak, breakdown, outro. Mixing between them at the wrong point
-          is what makes a transition collapse.</span></div>
-        <div class="gitem"><b>Bar</b><span>Four beats. Phrases are almost always
-          a multiple of 8 or 16 bars, and DJs count in them.</span></div>
-        <div class="gitem"><b>Mix point</b><span>The bar where the new record
-          starts playing over the old one.</span></div>
-        <div class="gitem"><b>Bass swap</b><span>Handing the low end over. Two
-          kick drums at once turns to mud, so one deck stays cut until the
-          other gives it up.</span></div>
-        <div class="gitem"><b>EQ</b><span>Cutting a band so the records stop
-          competing. Low is kick and bass, mid is vocals, high is hats.</span></div>
-        <div class="gitem"><b>Filter</b><span>Sweeping the top or the bottom of
-          a deck out of the way.</span></div>
-        <p class="lede" style="margin-top:12px">In Beginner mode these appear
-          throughout the app — anything with a dotted underline explains itself
-          when you hover it.</p>
-      </div>
       <button class="go" id="introgo" type="button">Start mixing</button>
+      <button class="go ghost" id="tonext" type="button">New to this? Read the words →</button>
     </div>
 
 
@@ -621,6 +605,43 @@
     </div>
   </div>
 </div>
+  <div class="intro two" id="p2" hidden>
+    <div class="side wide">
+      <div class="eyebrow">The words</div>
+      <h2 class="h2s">If they're new.</h2>
+      <div class="gloss">
+      
+        
+        <div class="gitem"><b>BPM</b><span>Beats per minute. Two records have to
+          be at the same one to play together — the pitch fader closes the gap.</span></div>
+        <div class="gitem"><b>Key · 8B</b><span>Camelot notation: a number 1–12
+          and a letter. Neighbours on that wheel sound good together, distant
+          ones clash.</span></div>
+        <div class="gitem"><b>Phrase</b><span>A section of a track — intro,
+          build, peak, breakdown, outro. Mixing between them at the wrong point
+          is what makes a transition collapse.</span></div>
+        <div class="gitem"><b>Bar</b><span>Four beats. Phrases are almost always
+          a multiple of 8 or 16 bars, and DJs count in them.</span></div>
+        <div class="gitem"><b>Mix point</b><span>The bar where the new record
+          starts playing over the old one.</span></div>
+        <div class="gitem"><b>Bass swap</b><span>Handing the low end over. Two
+          kick drums at once turns to mud, so one deck stays cut until the
+          other gives it up.</span></div>
+        <div class="gitem"><b>EQ</b><span>Cutting a band so the records stop
+          competing. Low is kick and bass, mid is vocals, high is hats.</span></div>
+        <div class="gitem"><b>Filter</b><span>Sweeping the top or the bottom of
+          a deck out of the way.</span></div>
+
+            </div>
+      <p class="lede" style="margin-top:14px">In Beginner mode these appear
+        throughout the app — anything with a dotted underline explains itself
+        when you hover it. Expert mode turns them off.</p>
+      <div class="navrow">
+        <button class="go ghost" id="toback" type="button">← Back</button>
+        <button class="go" id="introgo2" type="button">Start mixing</button>
+      </div>
+    </div>
+  </div>
 <main>
   <div id="list">
     <div class="searchwrap">
@@ -1217,7 +1238,14 @@ function seenIntro(){
 function markIntroSeen(){
   try { localStorage.setItem('cuepoint.intro', '1'); } catch (e) {}
 }
-function showIntro(){ document.getElementById('scrim').classList.add('on'); }
+function introPage(n){
+  document.getElementById('p1').hidden = n !== 1;
+  document.getElementById('p2').hidden = n !== 2;
+}
+function showIntro(){
+  introPage(1);                       // always open on the first page
+  document.getElementById('scrim').classList.add('on');
+}
 function hideIntro(){
   document.getElementById('scrim').classList.remove('on');
   markIntroSeen();
@@ -1420,6 +1448,9 @@ function initFilters(){
   setBeginner(BEGINNER);
   document.getElementById('help').onclick = showIntro;
   document.getElementById('introgo').onclick = hideIntro;
+  document.getElementById('introgo2').onclick = hideIntro;
+  document.getElementById('tonext').onclick = () => introPage(2);
+  document.getElementById('toback').onclick = () => introPage(1);
   document.getElementById('scrim').onclick = e => {
     if (e.target.id === 'scrim') hideIntro();
   };
