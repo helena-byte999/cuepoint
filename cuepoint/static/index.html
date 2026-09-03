@@ -105,7 +105,8 @@
     box-shadow:0 34px 90px rgba(0,0,0,.7);
     display:grid; grid-template-columns:1fr 1px 1fr; }
   .intro .rule { background:var(--line); }
-  .intro .side { padding:34px 34px 30px; }
+  .intro .side { padding:32px 32px 28px; }
+  .intro { max-height:88vh; overflow-y:auto; }
   .intro h2 { font-family:var(--display); font-size:clamp(27px,3.4vw,40px);
     line-height:1.02; margin:13px 0 14px; letter-spacing:.006em; }
   .intro h2 em { font-style:normal; color:var(--lime); }
@@ -127,6 +128,26 @@
   .demo .key .k1 { color:var(--lime); }
   .demo .key .k2 { color:var(--lav); }
 
+  .demo .m.ph { background:#fff; box-shadow:0 0 10px rgba(255,255,255,.85); }
+  .demo .key .k3 { color:#fff; }
+  .demo .cap2 { margin:10px 0 0; font-size:11px; line-height:1.5; color:var(--dim2); }
+  .modes { margin-top:20px; display:flex; flex-direction:column; gap:9px; }
+  .mrow { display:grid; grid-template-columns:74px 1fr; gap:11px;
+    align-items:start; font-size:11.5px; line-height:1.5; color:var(--dim); }
+  .mchip { display:inline-flex; justify-content:center; padding:4px 0;
+    border-radius:999px; background:var(--panel2); border:1px solid var(--line);
+    color:var(--dim2); font:700 9.5px var(--ui); letter-spacing:.1em;
+    text-transform:uppercase; }
+  .mchip.on { background:var(--lime); border-color:var(--lime); color:#000; }
+  .step p em { font-style:normal; font-weight:700; }
+  .t-clean  { color:var(--lime); }
+  .t-eq     { color:var(--amber); }
+  .t-tricky { color:var(--red); }
+  .t-adv    { color:var(--lav); }
+  .step p b { color:var(--lav); }
+  .foot { margin:22px 0 0; padding-top:16px; border-top:1px solid var(--line);
+    font-size:11px; line-height:1.55; color:var(--dim2); }
+  .foot b { color:var(--dim); }
   .steps { display:flex; flex-direction:column; gap:15px; }
   .step { display:grid; grid-template-columns:25px 1fr; gap:13px;
     align-items:start; }
@@ -247,6 +268,14 @@
      A score is a claim; the only way to check it is to listen. The two
      records are decoded up front so the crossfade can be scheduled on the
      audio clock rather than with timers, which would drift off the beat. */
+  /* Loop is a state, not an action, so it stays lit rather than swapping icon. */
+  .loop { width:30px; height:30px; border-radius:50%; background:none;
+    border:1px solid var(--line); color:var(--dim2); display:grid;
+    place-items:center; cursor:pointer; padding:0;
+    transition:background .15s, color .15s, border-color .15s; }
+  .loop:hover { color:var(--ink); border-color:var(--line2); }
+  .loop.on { background:var(--lav); border-color:var(--lav); color:#000; }
+  .loop svg { width:14px; height:14px; display:block; }
   .play { width:34px; height:34px; border-radius:50%; background:var(--lav);
     border:0; color:#000; display:grid; place-items:center; cursor:pointer;
     padding:0; transition:background .15s, transform .15s; }
@@ -319,7 +348,7 @@
     transition:border-color .15s, background .15s; }
   .blend:hover { border-color:var(--line2); }
   .blend.open { border-color:#3c3c46; background:#141418; }
-  .blend > .head { display:grid; grid-template-columns:66px 1fr auto 34px 34px;
+  .blend > .head { display:grid; grid-template-columns:60px 1fr auto 30px 34px 34px;
     gap:16px; align-items:center; padding:15px 16px; cursor:pointer; }
   .score { font-family:var(--display); font-size:29px; line-height:1;
     font-variant-numeric:tabular-nums; }
@@ -459,37 +488,70 @@
       <h2>Not just what to play.<br><em>Where to bring it in.</em></h2>
       <p class="lede">Two records can share a tempo and a key and still wreck the
         mix — the kicks land on different sixteenths, or both singers arrive at
-        once. Cuepoint listens to the parts that actually decide it, then plays
-        the transition back so you can check it by ear.</p>
+        once. Cuepoint scores your crate on seven things instead of two, then
+        plays the transition back so you can check it by ear.</p>
+
       <div class="demo">
         <div class="wrap">
           <div class="lane2"><i style="left:0%;width:34%;background:var(--verse)"></i><i style="left:34%;width:26%;background:var(--breakdown)"></i><i style="left:60%;width:40%;background:var(--outro)"></i></div>
           <div class="lane2"><i style="left:30%;width:22%;background:var(--intro)"></i><i style="left:52%;width:26%;background:var(--build)"></i><i style="left:78%;width:22%;background:var(--peak)"></i></div>
           <div class="m cue" style="left:30%"></div>
           <div class="m sw" style="left:44%"></div>
+          <div class="m ph" style="left:37%"></div>
         </div>
         <div class="key">
           <span class="k1"><b>│</b> mix point</span>
-          <span class="k2"><b>│</b> bass swap</span>
+          <span class="k2"><b>│</b> bass swap · drag it</span>
+          <span class="k3"><b>│</b> playhead</span>
         </div>
+        <p class="cap2">Both records on one axis, lined up at the bar where one
+          becomes the other. Colours are the phrase — intro, build, peak,
+          breakdown, outro.</p>
       </div>
+
+      <div class="modes">
+        <div class="mrow"><span class="mchip on">Beginner</span>
+          <span>Plain English, a difficulty label on every blend, and the bars
+          counted out along the grid.</span></div>
+        <div class="mrow"><span class="mchip">Expert</span>
+          <span>The seven scoring components as measured. Switch any time in the
+          header.</span></div>
+      </div>
+
       <button class="go" id="introgo" type="button">Start mixing</button>
     </div>
+
     <div class="rule"></div>
+
     <div class="side">
       <div class="steps">
         <div class="step"><b>1</b><p>Pick the record that's playing.
-          <span>The list on the left — search it, or filter by BPM, key and genre.</span></p></div>
+          <span>The list on the left. Search it, or filter to what's actually
+          mixable — pitch range, Camelot key and genre.</span></p></div>
         <div class="step"><b>2</b><p>Read the score.
-          <span>Every track in your crate is rated against it on seven things,
-          not two. Open a card to see which one is holding it back.</span></p></div>
+          <span>Every track rated 0–1. Beginner mode labels each one
+          <em class="t-clean">clean</em>, <em class="t-eq">needs EQ</em>,
+          <em class="t-tricky">tricky</em> or <em class="t-adv">advanced</em> —
+          start with the clean ones.</span></p></div>
         <div class="step"><b>3</b><p>Take the mix point.
           <span>Where to leave the outgoing record, where to come in on the new
-          one, and how many bars to run them together.</span></p></div>
+          one, how many bars to run together, and the pitch fader move.</span></p></div>
         <div class="step"><b>4</b><p>Hear it before you play it.
-          <span>Press play on any result. Drag the lavender line to move where
-          the bass changes hands, and cut a band if something clashes.</span></p></div>
+          <span>Press <b>▶</b> on any result. The outgoing runs for eight bars,
+          the incoming enters at its cue pitched to match, and they crossfade
+          over exactly the bars chosen.</span></p></div>
+        <div class="step"><b>5</b><p>Shape it while it runs.
+          <span>Drag the lavender line to move where the bass changes hands.
+          Cut lows, mids or highs on either deck. If a vocal is still going on
+          the way out, it's held under the new record to finish rather than
+          being cut.</span></p></div>
+        <div class="step"><b>6</b><p>Fix what clashes.
+          <span>Where a blend is weak the card names it — two kicks beating,
+          two vocals at once, kicks on different sixteenths — and says which
+          band to pull.</span></p></div>
       </div>
+      <p class="foot">The <b>?</b> in the header brings this back. The wordmark
+        resets to a clean slate. Nothing here writes to your rekordbox library.</p>
     </div>
   </div>
 </div>
@@ -533,6 +595,7 @@ const esc = s => s.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','
 const PLUS = '<svg viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M7 1.4v11.2M1.4 7h11.2" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>';
 const PLAY = '<svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3 1.6 12 7 3 12.4Z" fill="currentColor"/></svg>';
 const STOP = '<svg viewBox="0 0 14 14" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="1.4" fill="currentColor"/></svg>';
+const LOOP = '<svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M4 5h7a2.6 2.6 0 0 1 0 5.2H3.4M5.6 2.6 3.2 5l2.4 2.4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 let TRACKS = [], current = null;
 
 async function get(u){ const r = await fetch(u); return r.json(); }
@@ -708,6 +771,8 @@ function blendCard(playing, b, i){
       <div class="right"><div class="bpm">${b.track.tempo}<em>BPM</em></div>
         <div class="keyline">${b.track.key} · ${b.track.camelot}${alt}</div>
         ${BEGINNER ? `<div style="margin-top:6px"><span class="diff ${difficulty(b)[0]}">${difficulty(b)[1]}</span></div>` : ''}</div>
+      <button class="loop" type="button" aria-label="Repeat 16 bars, then leave"
+        title="Loop 16 bars, then leave">${LOOP}</button>
       <button class="play" type="button" aria-label="Play this transition">${PLAY}</button>
       <button class="plus" type="button" aria-label="Show why this scored what it did">${PLUS}</button>
     </div><div class="body">${BEGINNER ? plainEnglish(b, playing) : parts(b)}${aligned(playing, b)}${eqBlock(b)}${note}</div></div>`;
@@ -842,6 +907,11 @@ const LEAD_BARS = 8, TAIL_BARS = 8, CURVE_N = 128;
 const VOCAL_HERE = 0.28;
 const VOCAL_TAIL_BARS = 4;      // how long to let the line resolve
 const VOCAL_FLOOR = 0.42;       // where the outgoing sits while it rides on top
+/* A transition cannot be judged in one pass. Sixteen bars -- the lead-in plus
+   the crossfade -- repeated a few times, then it leaves. Every pass is
+   scheduled up front on the audio clock so the repeats land on the beat
+   instead of drifting the way a timer would. */
+const LOOP_BARS = 16, LOOP_PASSES = 4;
 
 const fadeCurves = (() => {
   const out = new Float32Array(CURVE_N), inn = new Float32Array(CURVE_N);
@@ -926,6 +996,7 @@ async function playBlend(playing, b, card){
   const vTail = ridesOut ? VOCAL_TAIL_BARS * barSec : 0;
 
   const eqA = eqChain(), eqB = eqChain();
+  // one chain per deck, shared by every pass
   const killed = d => ({
     low:  !!card.querySelector(`.kill[data-deck="${d}"][data-band="low"]`).classList.contains('on'),
     mid:  !!card.querySelector(`.kill[data-deck="${d}"][data-band="mid"]`).classList.contains('on'),
@@ -935,28 +1006,46 @@ async function playBlend(playing, b, card){
   const swapBox = card.querySelector('.bassswap');
   const doSwap = swapBox ? swapBox.checked : false;
 
-  const sA = AC.createBufferSource(), gA = AC.createGain();
-  sA.buffer = A; sA.connect(eqA.input); eqA.output.connect(gA).connect(AC.destination);
-  gA.gain.setValueAtTime(1, t0);
-  gA.gain.setValueCurveAtTime(ridesOut ? fadeToFloor : fadeCurves.out, tMix, blend);
-  if (ridesOut) {
-    gA.gain.setValueAtTime(VOCAL_FLOOR, tEnd);
-    gA.gain.linearRampToValueAtTime(0.0001, tEnd + vTail);
+  const looping = !!(card.querySelector('.loop') || {}).classList
+                 && card.querySelector('.loop').classList.contains('on');
+  const loopLen = LOOP_BARS * barSec;
+  const passes  = looping ? LOOP_PASSES : 1;
+  const nodes   = [];
+
+  for (let k = 0; k < passes; k++) {
+    const last = k === passes - 1;
+    const p0   = t0 + k * loopLen;          // this pass starts here
+    const pMix = p0 + lead, pEnd = pMix + blend;
+    // Only the final pass is allowed to run its tail out; the others stop so
+    // the next one starts clean on the downbeat.
+    const stopA = last ? pEnd + vTail + 0.05 : pEnd + Math.min(vTail, loopLen - lead - blend);
+    const stopB = last ? pEnd + tail : p0 + loopLen;
+
+    const sA = AC.createBufferSource(), gA = AC.createGain();
+    sA.buffer = A; sA.connect(eqA.input);
+    gA.gain.setValueAtTime(1, p0);
+    gA.gain.setValueCurveAtTime(ridesOut ? fadeToFloor : fadeCurves.out, pMix, blend);
+    if (ridesOut) {
+      gA.gain.setValueAtTime(VOCAL_FLOOR, pEnd);
+      gA.gain.linearRampToValueAtTime(0.0001, pEnd + vTail);
+    }
+    sA.start(p0, Math.max(0, cueOut - lead));
+    sA.stop(stopA);
+
+    const sB = AC.createBufferSource(), gB = AC.createGain();
+    sB.buffer = B; sB.playbackRate.value = rate;
+    sB.connect(eqB.input);
+    gB.gain.setValueAtTime(0, p0);
+    gB.gain.setValueCurveAtTime(fadeCurves.inn, pMix, blend);
+    sB.start(pMix, cueIn);
+    sB.stop(stopB);
+
+    gA.connect(AC.destination); gB.connect(AC.destination);
+    nodes.push(sA, sB);
   }
-  sA.start(t0, Math.max(0, cueOut - lead));
-  sA.stop(tEnd + vTail + 0.05);
 
-  const sB = AC.createBufferSource(), gB = AC.createGain();
-  sB.buffer = B; sB.playbackRate.value = rate;
-  sB.connect(eqB.input); eqB.output.connect(gB).connect(AC.destination);
-  gB.gain.setValueAtTime(0, t0);
-  gB.gain.setValueCurveAtTime(fadeCurves.inn, tMix, blend);
-  sB.start(tMix, cueIn);
-  sB.stop(tEnd + tail);
+  const runEnd = t0 + (passes - 1) * loopLen + lead + blend + Math.max(tail, vTail);
 
-  // Manual kills apply immediately; the bass swap overrides the low band and
-  // happens halfway through the crossfade, which is where a DJ does it.
-  ['low','mid','high'].forEach(bd => { setBand(eqA, bd, kA[bd], t0); setBand(eqB, bd, kB[bd], t0); });
   if (ridesOut) setBand(eqA, 'high', true, tEnd);
   card.__eq = { eqA, eqB, doSwap, tMix, blend, bars: b.bars };
   if (doSwap) scheduleSwap(card.__eq, swapPos(card, b.bars));
@@ -972,15 +1061,16 @@ async function playBlend(playing, b, card){
   const PRE = 40, SPAN = 130;
   const tick = () => {
     const now = AC.currentTime;
-    if (now > tEnd + Math.max(tail, vTail)) { stopBlend(); return; }
-    if (ph) ph.style.left = (100 * (PRE - lead + (now - t0)) / SPAN) + '%';
+    if (now > runEnd) { stopBlend(); return; }
+    const inPass = looping ? (now - t0) % loopLen : (now - t0);
+    if (ph) ph.style.left = (100 * (PRE - lead + inPass) / SPAN) + '%';
     if (bar) {
-      const p = Math.min(1, Math.max(0, (now - tMix) / blend));
+      const p = Math.min(1, Math.max(0, (inPass - lead) / blend));
       bar.style.width = (p * 100) + '%';
     }
     PLAYING.raf = requestAnimationFrame(tick);
   };
-  PLAYING = { nodes: [sA, sB], raf: 0, card, ends: tEnd + Math.max(tail, vTail) };
+  PLAYING = { nodes, raf: 0, card, ends: runEnd };
   PLAYING.raf = requestAnimationFrame(tick);
 }
 
@@ -1019,7 +1109,7 @@ async function open_(id, push){
   document.getElementById('main').scrollTop = 0;
   el.querySelectorAll('.blend .head').forEach((hd, i) => {
     hd.onclick = ev => {
-      if (ev.target.closest('.play')) return;      // the play button is not a toggle
+      if (ev.target.closest('.play') || ev.target.closest('.loop')) return;
       hd.parentElement.classList.toggle('open');
     };
     const card0 = hd.parentElement;
@@ -1051,6 +1141,16 @@ async function open_(id, push){
           setBand(chain, k.dataset.band, k.classList.contains('on'));
       }
     });
+    const lp = hd.querySelector('.loop');
+    if (lp) lp.onclick = ev => {
+      ev.stopPropagation();
+      lp.classList.toggle('on');
+      // Restart so the change is heard now rather than on the next press.
+      if (PLAYING && PLAYING.card === hd.parentElement) {
+        stopBlend();
+        playBlend(p, d.blends[i], hd.parentElement);
+      }
+    };
     const btn = hd.querySelector('.play');
     if (btn) btn.onclick = ev => {
       ev.stopPropagation();
