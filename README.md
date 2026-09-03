@@ -5,7 +5,9 @@ where exactly do I bring it in?**
 
 Every other tool stops at tempo and key. Two records can share both and still
 wreck: the kicks land on different sixteenths, or both singers arrive at once.
-Cuepoint listens to the parts that actually decide it.
+Cuepoint listens to the parts that actually decide it -- and then plays the
+transition back to you, so the score is something you can check rather than
+something you have to trust.
 
 It reads a local rekordbox collection strictly read-only. It never writes into
 rekordbox's own files.
@@ -100,9 +102,22 @@ From the command line:
           out at 2:17 (peak)  ->  in at 0:30 (build)   4 bars   pitch +0.0%
           tempo 1.00  groove 1.00  vocal 0.98  harmonic 1.00  energy 0.99 ...
 
-The web UI draws the same thing: both records on one time axis, aligned at the
-bar where one becomes the other, plus a compatible-track filter -- pitch range
-and Camelot key, the way a DJ browser works.
+The web UI draws the same thing, and lets you check it by ear:
+
+- both records on one time axis, aligned at the bar where one becomes the other
+- a compatible-track filter -- pitch range and Camelot key, the way a DJ
+  browser works -- plus genre and search
+- **press play on any result** and it runs the transition: the outgoing record
+  from eight bars out, the incoming from its cue and pitched to match, and an
+  equal-power crossfade over exactly the bars the scorer chose
+- a three-band EQ per deck, and a bass swap you drag along the bar grid to set
+  where the bottom end changes hands
+- where a blend is weak, it names the reason in the terms a DJ would use --
+  "the two kick fundamentals beat against each other", "both records have a
+  vocal here" -- and says which band fixes it
+
+A first-run panel covers all of that in four sentences; the `?` in the header
+brings it back.
 
 ## Live mode
 
@@ -143,6 +158,11 @@ fragments are segmentation noise, and are skipped as mix points.
 Live recognition assumes keylock is on, which is the modern default. With
 keylock off, a large pitch move shifts energy across chroma bins and match
 confidence will fall.
+
+The preview player pitches the incoming record with playback rate, so pitch
+moves with tempo -- there is no keylock. At the +/-8% this scorer allows that is
+under a semitone, and it is what a deck does with Master Tempo off, but it is
+not what you hear with keylock on.
 
 Streaming catalogues (Beatport, Beatsource, TIDAL) are not integrated. The
 Beatport v4 API is OAuth behind an approved-partner portal and in-app streaming
