@@ -160,6 +160,7 @@ class Track:
     # carries -- the files themselves arrive from download sites with their
     # tags stripped, and rekordbox keeps genre in the encrypted master.db.
     folder: str = ""
+    path: str = ""            # so the UI can play the record it is scoring
     phrases: list[Phrase] = field(default_factory=list)
 
     @property
@@ -185,7 +186,7 @@ def load_track(con, track_id: int, cache: Path | None = None) -> Track | None:
     part in a blend, so there is nothing to build.
     """
     row = con.execute(
-        "SELECT id, title, filename, tempo, duration_ms, folder "
+        "SELECT id, title, filename, tempo, duration_ms, folder, path "
         "FROM tracks WHERE id=?", (track_id,)).fetchone()
     if row is None:
         return None
@@ -198,7 +199,7 @@ def load_track(con, track_id: int, cache: Path | None = None) -> Track | None:
 
     track = Track(id=row["id"], title=row["title"], filename=row["filename"],
                   tempo=row["tempo"] or 0.0, duration_ms=row["duration_ms"] or 0,
-                  folder=row["folder"] or "")
+                  folder=row["folder"] or "", path=row["path"] or "")
     for p in con.execute(
             "SELECT idx, role, start_ms, end_ms, start_bar, bars FROM phrases "
             "WHERE track_id=? ORDER BY idx", (track_id,)):

@@ -103,6 +103,28 @@ class Handler(SimpleHTTPRequestHandler):
                 return self._send({"error": "no such track"}, 404)
             return self._send(track_json(t, phrases=True))
 
+        if route.startswith("audio/"):
+            # The scorer's claim is only checkable by ear, so the UI needs the
+            # audio itself. Whole file, not ranges: the player decodes both
+            # records up front to schedule the crossfade sample-accurately.
+            t = crate.get(int(route.split("/")[1]))
+            if t is None or not t.path:
+                return self._send({"error": "no such track"}, 404)
+            f = Path(t.path)
+            if not f.exists():
+                return self._send({"error": "audio file is gone"}, 404)
+            ctype = {".mp3": "audio/mpeg", ".m4a": "audio/mp4",
+                     ".wav": "audio/wav", ".flac": "audio/flac",
+                     ".ogg": "audio/ogg"}.get(f.suffix.lower(),
+                                              "application/octet-stream")
+            data = f.read_bytes()
+            self.send_response(200)
+            self.send_header("Content-Type", ctype)
+            self.send_header("Content-Length", str(len(data)))
+            self.send_header("Accept-Ranges", "none")
+            self.end_headers()
+            return self.wfile.write(data)
+
         if route.startswith("next/"):
             t = crate.get(int(route.split("/")[1]))
             if t is None:
