@@ -61,11 +61,15 @@ earn its place it was removed and the reason left in the source — see
 
 ## Install
 
-Requires **Python 3.9+** and **ffmpeg** on `PATH`. numpy and scipy come in with
-the package.
+Requires **Python 3.9+**. numpy, scipy and a working ffmpeg all come in with
+the package, so this is the whole install.
 
-    pip install cuepoint      # or: pipx install cuepoint
+    pip install git+https://github.com/helena-byte999/cuepoint
     cuepoint doctor           # checks ffmpeg, rekordbox, and where data lives
+
+Install from the repository, not from PyPI. The version on PyPI is behind and
+cannot read a plain folder of music; it is also carrying a crash on first run,
+fixed here. A release will catch up.
 
 Then one of two first runs, depending on what you have:
 
