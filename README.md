@@ -9,8 +9,9 @@ Cuepoint listens to the parts that actually decide it -- and then plays the
 transition back to you, so the score is something you can check rather than
 something you have to trust.
 
-It reads a local rekordbox collection strictly read-only. It never writes into
-rekordbox's own files.
+It reads a local rekordbox collection strictly read-only, and never writes into
+rekordbox's own files. If you don't use rekordbox, point it at a folder of
+music instead -- it will work out the grid and the structure itself.
 
 ## Why it can do this
 
@@ -31,6 +32,12 @@ once to measure what the analysis does not carry:
 
 Grooves are measured against rekordbox's own grid and expressed as 24 slots of
 one bar, so two records at different tempos compare directly.
+
+Without rekordbox, `cuepoint scan` derives the same three things -- tempo, a
+beat grid that knows where the bars start, and a phrase structure -- from the
+audio, and writes them into the same tables. Nothing downstream can tell the
+difference. It is a genuine substitute rather than a demo mode, and its limits
+are in [Caveats](#caveats).
 
 ## How a blend is scored
 
@@ -54,17 +61,25 @@ earn its place it was removed and the reason left in the source — see
 
 ## Install
 
-Requires **Python 3.9+**, **ffmpeg** on `PATH`, and a **rekordbox** collection
-that has been analysed. numpy and scipy come in with the package.
+Requires **Python 3.9+** and **ffmpeg** on `PATH`. numpy and scipy come in with
+the package.
 
     pip install cuepoint      # or: pipx install cuepoint
     cuepoint doctor           # checks ffmpeg, rekordbox, and where data lives
-    cuepoint setup            # scan, measure, then open the UI
 
-`setup` is the whole first run. It reads the rekordbox collection, decodes each
+Then one of two first runs, depending on what you have:
+
+    cuepoint setup                      # a rekordbox collection, already analysed
+    cuepoint setup ~/Music/house        # ...or just folders of music
+
+`setup` is the whole first run either way. It reads the collection, decodes each
 track once to measure what the analysis does not carry, and opens the web UI on
 localhost:8765. Expect a few minutes for a few hundred tracks; the measurement
 is cached per track, so later runs only touch what changed.
+
+Give it as many folders as you like. Each one keeps the name of the folder the
+file sits in, and those become filter chips in the UI -- so if your music is
+already sorted into crates on disk, it arrives sorted.
 
 Everything Cuepoint derives lives in one folder, away from wherever you happen
 to be standing:
@@ -81,12 +96,18 @@ not where rekordbox usually puts it. A directory that already contains a
 
 After the first run, the individual steps are there when you need them:
 
-    cuepoint build      # re-read rekordbox (after moving or adding music)
-    cuepoint extract    # measure new tracks
-    cuepoint serve      # the web UI
+    cuepoint build              # re-read rekordbox (after moving or adding music)
+    cuepoint scan ~/Music/house # ...or re-read a folder of music
+    cuepoint extract            # measure new tracks
+    cuepoint serve              # the web UI
 
-Run those three in that order whenever you move files or add music -- each one
-feeds the next.
+Run read, measure, serve in that order whenever you move files or add music --
+each one feeds the next.
+
+`build` and `scan` write to the same database and stay out of each other's way:
+scanning a folder never touches imported tracks, and re-importing rekordbox
+never touches scanned ones. Re-scanning a folder refreshes exactly that folder,
+which is also how you drop tracks you have deleted.
 
 From the command line:
 
@@ -132,6 +153,7 @@ with almost no margin over the runner-up.
 
     anlz.py       parser for rekordbox's .DAT/.EXT analysis files
     library.py    builds cuepoint.db from the collection (read-only)
+    scan.py       ...or from a folder of audio: tempo, grid, downbeats, phrases
     audio.py      ffmpeg decode, spectrogram, onset envelope, grid alignment
     features.py   per-phrase groove / chroma / vocal / energy
     extract.py    runs features.py across the library, in parallel, cached
@@ -154,6 +176,30 @@ heavily processed vocal chop.
 
 Phrase roles come from rekordbox and inherit its mistakes — occasional two-bar
 fragments are segmentation noise, and are skipped as mix points.
+
+A scanned folder is analysed by Cuepoint rather than by rekordbox, and that
+analysis is measurably weaker. Checked against rekordbox's own numbers for the
+same 60 files — afro house, gqom and amapiano, which is a fair test because
+that is material where the offbeat is often the loudest thing in the bar:
+
+| | agrees with rekordbox |
+|---|---|
+| tempo | 55/60 (92%) |
+| grid on the beat | 42/60 (70%) |
+| downbeat | 26/42 (62% of the grids that were right) |
+
+Those three depend on each other in that order, and an error high up cannot be
+recovered lower down. Tempo is fitted as one constant across the track, so a
+live recording gets a grid that has drifted by the end — every one of the five
+tempo disagreements was a track rekordbox had also given a fractional tempo,
+which is its way of saying the same thing. The downbeat is the weak one, and
+when it is wrong it is wrong by a whole beat, which rotates every groove
+template with it. Phrase roles are rules over kick presence and loudness rather
+than a trained segmenter: they separate "the drums have dropped out" from "this
+is the loudest the record gets", which is what the scorer's role term asks, but
+they will not name a two-bar fill.
+
+Where you have rekordbox, `build` remains the better source.
 
 Live recognition assumes keylock is on, which is the modern default. With
 keylock off, a large pitch move shifts energy across chroma bins and match

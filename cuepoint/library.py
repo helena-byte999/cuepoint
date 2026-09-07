@@ -13,6 +13,7 @@ Both are opened strictly read-only. Cuepoint writes only to its own
 from __future__ import annotations
 
 import os
+import re
 import sqlite3
 import urllib.parse
 from dataclasses import dataclass
@@ -82,7 +83,11 @@ CREATE TABLE IF NOT EXISTS tracks (
     tempo       REAL,
     beat_count  INTEGER,
     mood        INTEGER,
-    analyzed    INTEGER NOT NULL    -- has usable beat grid + phrases?
+    analyzed    INTEGER NOT NULL,   -- has usable beat grid + phrases?
+    -- 'rekordbox' or 'folder'. Both can sit in one database, and each
+    -- builder clears only its own rows, so scanning a crate does not
+    -- wipe an imported collection and vice versa.
+    source      TEXT NOT NULL DEFAULT 'rekordbox'
 );
 CREATE TABLE IF NOT EXISTS beats (
     track_id INTEGER NOT NULL,
@@ -116,6 +121,19 @@ CREATE INDEX IF NOT EXISTS phrases_role ON phrases(role);
 CREATE INDEX IF NOT EXISTS tracks_present ON tracks(present, analyzed);
 """
 
+def migrate(con: sqlite3.Connection) -> None:
+    """Bring an older cuepoint.db up to the current schema.
+
+    Only ever adds; a database built by a previous version keeps its contents
+    and its rows are attributed to rekordbox, which is where they came from.
+    """
+    cols = {r[1] for r in con.execute("PRAGMA table_info(tracks)")}
+    if "source" not in cols:
+        con.execute("ALTER TABLE tracks ADD COLUMN source TEXT "
+                    "NOT NULL DEFAULT 'rekordbox'")
+        con.commit()
+
+
 @dataclass
 class Source:
     track_id: int
@@ -128,6 +146,11 @@ def _readonly(path: Path) -> sqlite3.Connection:
     return sqlite3.connect(f"file:{path}?mode=ro", uri=True)
 
 
+# A percent escape that actually is one. Used to decide whether a filename
+# has been URL-encoded, rather than assuming it: "100% Pure" must survive.
+_PERCENT = re.compile(r"%[0-9A-Fa-f]{2}")
+
+
 def _clean_title(filename: str) -> str:
     """Strip the junk that download sites bolt onto filenames.
 
@@ -135,8 +158,23 @@ def _clean_title(filename: str) -> str:
     "[SPOTDOWNLOADER.COM] Return Of The Mack - Remix.mp3" or
     "... - SoundLoadMate.com.mp3". A tidy title makes the UI readable; it is
     never used for matching, so an imperfect result is harmless.
+
+    Some arrive with the URL encoding still attached, saved straight from a
+    browser -- "Africa%20Is%20Electronic". That is decoded first, so the junk
+    below is matched against real text rather than against "%28Official%20".
+    Decoding happens only when a genuine escape is present, so a title with a
+    bare percent sign in it is left alone; unquote also passes over a truncated
+    escape unharmed, which matters because these names are often cut off mid
+    sequence by a filesystem length limit.
     """
     name = Path(filename).stem
+    if _PERCENT.search(name):
+        name = urllib.parse.unquote(name)
+        # These names are often cut off by a filename length limit, which can
+        # land mid-escape and leave a "%" or "%2" hanging on the end. Only a
+        # partial escape, and only on a name that was encoded to begin with,
+        # so a title that simply ends in a percent sign keeps it.
+        name = re.sub(r"%[0-9A-Fa-f]?$", "", name)
     for junk in ("[SPOTDOWNLOADER.COM]", "SPOTDOWNLOADER.COM",
                  "- SoundLoadMate.com", "SoundLoadMate.com",
                  "(320 KBps)", "(Official Audio)", "[Official Audio]"):
@@ -183,8 +221,12 @@ def build(db_path: str | Path, verbose: bool = True) -> dict:
     db_path = Path(db_path)
     con = sqlite3.connect(db_path)
     con.executescript(SCHEMA)
-    for table in ("tracks", "beats", "phrases", "cues"):
-        con.execute(f"DELETE FROM {table}")
+    migrate(con)
+    # Only this source's rows. Anything scanned from a folder stays put.
+    for table in ("beats", "phrases", "cues"):
+        con.execute(f"DELETE FROM {table} WHERE track_id IN "
+                    "(SELECT id FROM tracks WHERE source='rekordbox')")
+    con.execute("DELETE FROM tracks WHERE source='rekordbox'")
 
     stats = {"total": 0, "present": 0, "with_grid": 0,
              "with_phrases": 0, "usable": 0, "failed": 0}
@@ -212,10 +254,13 @@ def build(db_path: str | Path, verbose: bool = True) -> dict:
         filename = os.path.basename(src.audio_path)
         folder = os.path.basename(os.path.dirname(src.audio_path))
         con.execute(
-            "INSERT OR REPLACE INTO tracks VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+            "INSERT OR REPLACE INTO tracks "
+            "(id, path, filename, title, folder, present, duration_ms, "
+            " tempo, beat_count, mood, analyzed, source) "
+            "VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
             (src.track_id, src.audio_path, filename, _clean_title(filename),
              folder, int(present), src.duration_ms, a.tempo, len(a.beats),
-             a.mood, int(has_grid and has_phrases)),
+             a.mood, int(has_grid and has_phrases), "rekordbox"),
         )
 
         con.executemany(

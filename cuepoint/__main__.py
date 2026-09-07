@@ -1,9 +1,10 @@
 """Cuepoint's command line.
 
-    cuepoint setup                      first run: scan, measure, then serve
+    cuepoint setup [folder ...]         first run: read, measure, then serve
     cuepoint doctor                     check ffmpeg, rekordbox, data folder
 
     python -m cuepoint build            rebuild the database from rekordbox
+    python -m cuepoint scan <folder>    ...or from a plain folder of music
     python -m cuepoint extract          compute features for new tracks
     python -m cuepoint tracks [query]   search the library
     python -m cuepoint show <query>     one track's structure and key
@@ -93,9 +94,10 @@ def describe(blend, index: int | None = None) -> None:
 # --------------------------------------------------------------------------
 
 def cmd_build(args) -> None:
-    print(f"Building {args.db} from {library.REKORDBOX}")
-    library.build(args.db)
-    print("\nNow run: python -m cuepoint extract")
+    db = args.db or paths.db_path()
+    print(f"Building {db} from {library.find_rekordbox()}")
+    library.build(db)
+    print("\nNow run: cuepoint extract")
 
 
 def cmd_extract(args) -> None:
@@ -248,6 +250,19 @@ def cmd_listen(args) -> None:
 # first run
 # --------------------------------------------------------------------------
 
+def cmd_scan(args) -> None:
+    """Read a folder of audio files instead of a rekordbox collection."""
+    from . import scan
+    have, detail = _check_ffmpeg()
+    if not have:
+        sys.exit(f"ffmpeg is required but was {detail}.")
+    paths.ensure()
+    print(f"Data folder: {paths.data_dir()}\n")
+    stats = scan.build(args.folders, args.db, workers=args.jobs)
+    if stats["ok"]:
+        print("\nNext: cuepoint extract   then   cuepoint serve")
+
+
 def _check_ffmpeg() -> tuple[bool, str]:
     from . import audio
     exe = audio.FFMPEG
@@ -276,13 +291,16 @@ def cmd_doctor(args) -> None:
         print("                install it: brew install ffmpeg   (macOS)")
         print("                            winget install ffmpeg  (Windows)")
 
+    # rekordbox is the better source where it exists, but it is no longer
+    # required: `cuepoint scan` derives the grid and the phrases from audio.
     rb = library.find_rekordbox()
-    ok &= rb is not None
-    print(f"  rekordbox     {'OK  ' if rb else 'MISSING'}  {rb or 'no collection found'}")
+    print(f"  rekordbox     {'OK  ' if rb else 'absent '}  "
+          f"{rb or 'no collection found -- not required'}")
     if rb is None:
         for d in library.rekordbox_dirs():
             print(f"                looked in {d}")
         print("                override with CUEPOINT_REKORDBOX=/path/to/rekordbox")
+        print("                or skip it: cuepoint scan ~/Music/whatever")
 
     d = paths.data_dir()
     print(f"\n  data folder   {d}")
@@ -293,14 +311,27 @@ def cmd_doctor(args) -> None:
 
     if db.exists():
         con = library.connect(args.db)
+        library.migrate(con)
         total, = con.execute("SELECT COUNT(*) FROM tracks").fetchone()
         usable, = con.execute(
             "SELECT COUNT(*) FROM tracks WHERE analyzed=1 AND present=1").fetchone()
+        by_source = ", ".join(
+            f"{n} from {src}" for src, n in con.execute(
+                "SELECT source, COUNT(*) FROM tracks GROUP BY source"))
         con.close()
         print(f"  collection    {total} known, {usable} with audio + analysis")
+        if by_source:
+            print(f"  sources       {by_source}")
 
-    print("\n" + ("Ready. Run: cuepoint serve" if ok and db.exists()
-                  else "Run: cuepoint setup" if ok else "Fix the items above first."))
+    if not ok:
+        nxt = "Fix the items above first."
+    elif db.exists():
+        nxt = "Ready. Run: cuepoint serve"
+    elif rb is not None:
+        nxt = "Run: cuepoint setup"
+    else:
+        nxt = "Point it at your music: cuepoint setup ~/Music/whatever"
+    print("\n" + nxt)
     sys.exit(0 if ok else 1)
 
 
@@ -312,13 +343,22 @@ def cmd_setup(args) -> None:
         sys.exit(f"ffmpeg is required but was {detail}.\n"
                  "  macOS:   brew install ffmpeg\n"
                  "  Windows: winget install ffmpeg")
-    if library.find_rekordbox() is None:
-        sys.exit("No rekordbox collection found. Run `cuepoint doctor` for details.")
+    folders = getattr(args, "folders", None)
+    if not folders and library.find_rekordbox() is None:
+        sys.exit("No rekordbox collection found, and no folder given.\n"
+                 "  Point Cuepoint at your music:  cuepoint setup ~/Music/whatever\n"
+                 "  Or run `cuepoint doctor` for details.")
 
     paths.ensure()
     print(f"Data folder: {paths.data_dir()}\n")
-    print("[1/3] Reading the rekordbox collection...")
-    cmd_build(args)
+    if folders:
+        print("[1/3] Reading your music folders...")
+        from . import scan
+        if not scan.build(folders, args.db, workers=args.jobs)["ok"]:
+            sys.exit("Nothing usable was found, so there is nothing to measure.")
+    else:
+        print("[1/3] Reading the rekordbox collection...")
+        cmd_build(args)
     print("\n[2/3] Measuring each track (cached -- later runs only touch new ones)...")
     cmd_extract(args)
     print("\n[3/3] Starting the web UI...")
@@ -375,8 +415,17 @@ def main(argv=None) -> None:
     sub.add_parser("doctor", help="check ffmpeg, rekordbox and the data folder"
                    ).set_defaults(func=cmd_doctor)
 
-    p = sub.add_parser("setup", help="first run: build, measure, then serve")
+    p = sub.add_parser("scan", help="read a folder of music instead of rekordbox")
+    p.add_argument("folders", nargs="+", metavar="FOLDER")
+    p.add_argument("-j", "--jobs", type=int, default=None,
+                   help="parallel workers (default: cores - 1)")
+    p.set_defaults(func=cmd_scan)
+
+    p = sub.add_parser("setup", help="first run: read, measure, then serve")
+    p.add_argument("folders", nargs="*", metavar="FOLDER",
+                   help="music folders to scan; omit to use rekordbox")
     p.add_argument("--force", action="store_true", help="redo every track")
+    p.add_argument("-j", "--jobs", type=int, default=None)
     p.add_argument("-p", "--port", type=int, default=8765)
     p.set_defaults(func=cmd_setup)
 
